@@ -1,0 +1,1 @@
+{"tool_id":"format_brief","input":{"account":"Acme Example","note":"Synthetic   renewal  note"},"expected_output":{"brief":"Acme Example: Synthetic renewal note"}}

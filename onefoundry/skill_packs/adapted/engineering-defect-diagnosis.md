@@ -1,0 +1,10 @@
+# engineering defect diagnosis
+
+Use this procedure for one named defect in a work order, run, or supplied reproduction. Establish the failed behavior before proposing a change. This is a diagnosis of available evidence, not execution of a coding agent or a claim that the defect has been reproduced independently.
+
+1. Record the expected behavior, observed behavior, environment, revision, reproduction steps, and the first known failure. Label each item as operator-supplied, saved owner record, provider report, or direct observation. If admitted, use `run_evidence_v1` and `coding_evidence_v1` for the named run; a trusted run-bound caller may read an exact saved source file through `repository_file_v1` or verified diff/log text through `coding_artifact_text_v1`. These raw-text reads are unavailable to live text SDK continuation.
+2. Trace the path from input through the owning component to the failed sink. Separate the first failed contract from downstream symptoms. State a leading cause, direct supporting evidence, competing causes, and confidence. A plausible source pattern or reported test result alone is insufficient to call the cause confirmed.
+3. Name the smallest discriminating check for each material uncertainty: a reproducible case, owner readback, dependency result, targeted test, or exact source inspection. Mark checks that were not run. Do not turn a missing read or truncated artifact into a negative finding.
+4. Recommend a bounded next action only after the evidence supports it. If a fix is proposed, specify the behavior to preserve, regression case, affected owner, and verification needed after implementation. Reconcile an unknown external attempt before suggesting any retry.
+
+Return the symptom, owner path, evidence IDs and revision, leading cause with confidence, alternatives, next check, and proposed action. This procedure cannot search the repository, execute tests, edit code, launch the external runner, or certify a fix. A saved receipt proves only the activity and outcome it actually corroborates.

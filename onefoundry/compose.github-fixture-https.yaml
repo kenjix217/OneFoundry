@@ -1,0 +1,216 @@
+services:
+  app:
+    environment:
+      GITHUB_SNAPSHOT_ROOT: /source-snapshots
+    volumes:
+      - github_source_snapshots:/source-snapshots:ro
+
+  github-fixture-snapshot-init:
+    profiles: [fixture-github-https]
+    build:
+      context: .
+      target: github-stage-runner
+    network_mode: none
+    user: "0:0"
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - github_source_snapshots:/source-snapshots
+    command:
+      - sh
+      - -ec
+      - >-
+        mkdir -p /source-snapshots/snapshots;
+        chown 0:0 /source-snapshots /source-snapshots/snapshots;
+        chmod 0700 /source-snapshots /source-snapshots/snapshots;
+        chown 10001:10001 /source-snapshots /source-snapshots/snapshots
+
+  github-fixture-https-init:
+    profiles: [fixture-github-https]
+    build:
+      context: .
+      target: github-stage-runner
+    network_mode: none
+    user: "0:0"
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - github_fixture_https:/fixture
+    command:
+      - sh
+      - -c
+      - >-
+        python -m runner.github_https_fixture_server --prepare --root /fixture &&
+        chown -R 10001:10001 /fixture
+
+  github-fixture-https-server:
+    profiles: [fixture-github-https]
+    build:
+      context: .
+      target: github-stage-runner
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 32
+    volumes:
+      - github_fixture_https:/fixture:ro
+    networks: [github_fixture_internal]
+    command: ["python", "-m", "runner.github_https_fixture_server", "--root", "/fixture"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import ssl,urllib.request; urllib.request.urlopen('https://localhost:8443/healthz', context=ssl.create_default_context(cafile='/fixture/ca.pem'), timeout=2).close()"]
+      interval: 1s
+      timeout: 3s
+      retries: 10
+    depends_on:
+      github-fixture-https-init:
+        condition: service_completed_successfully
+
+  github-fixture-https-spool-init:
+    profiles: [fixture-github-https]
+    build:
+      context: .
+      target: runner
+    network_mode: none
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - runner_spool:/runner-spool
+    command:
+      - python
+      - -c
+      - >-
+        from pathlib import Path;
+        root = Path('/runner-spool/github-fixture-https-v2');
+        [ (root / name).mkdir(parents=True, exist_ok=True) for name in
+        ('jobs', 'claims', 'receipts', 'artifacts') ]
+    depends_on:
+      spool-init:
+        condition: service_completed_successfully
+
+  github-fixture-https-supervisor:
+    profiles: [fixture-github-https]
+    build:
+      context: .
+      target: github-stage-runner
+    network_mode: "service:github-fixture-https-server"
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 32
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    volumes:
+      - runner_spool:/runner-spool
+      - github_fixture_https:/fixture:ro
+    command:
+      - python
+      - -m
+      - runner.github_fixture_https_supervisor
+      - --spool
+      - /runner-spool/github-fixture-https-v2
+      - --endpoint
+      - https://localhost:8443
+      - --ca-file
+      - /fixture/ca.pem
+      - --dummy-token-file
+      - /fixture/dummy-token
+      - --max-files
+      - "1000"
+      - --max-bytes
+      - "8388608"
+      - --max-tree-bytes
+      - "1048576"
+      - --wall-seconds
+      - "30"
+    depends_on:
+      github-fixture-https-server:
+        condition: service_healthy
+      github-fixture-https-spool-init:
+        condition: service_completed_successfully
+
+  github-fixture-snapshot-spool-init:
+    profiles: [fixture-github-https]
+    build:
+      context: .
+      target: runner
+    network_mode: none
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - runner_spool:/runner-spool
+    command:
+      - python
+      - -c
+      - >-
+        from pathlib import Path;
+        root = Path('/runner-spool/github-fixture-https-snapshot-v3');
+        [ (root / name).mkdir(parents=True, exist_ok=True) for name in
+        ('jobs', 'claims', 'receipts', 'artifacts') ]
+    depends_on:
+      spool-init:
+        condition: service_completed_successfully
+
+  github-fixture-snapshot-supervisor:
+    profiles: [fixture-github-https]
+    build:
+      context: .
+      target: github-stage-runner
+    network_mode: "service:github-fixture-https-server"
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 32
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    volumes:
+      - runner_spool:/runner-spool
+      - github_fixture_https:/fixture:ro
+      - github_source_snapshots:/source-snapshots
+    command:
+      - python
+      - -m
+      - runner.github_fixture_snapshot_supervisor
+      - --spool
+      - /runner-spool/github-fixture-https-snapshot-v3
+      - --endpoint
+      - https://localhost:8443
+      - --ca-file
+      - /fixture/ca.pem
+      - --dummy-token-file
+      - /fixture/dummy-token
+      - --snapshot-root
+      - /source-snapshots
+      - --max-files
+      - "1000"
+      - --max-bytes
+      - "8388608"
+      - --max-tree-bytes
+      - "1048576"
+      - --wall-seconds
+      - "30"
+    depends_on:
+      github-fixture-https-server:
+        condition: service_healthy
+      github-fixture-snapshot-spool-init:
+        condition: service_completed_successfully
+      github-fixture-snapshot-init:
+        condition: service_completed_successfully
+
+networks:
+  github_fixture_internal:
+    internal: true
+
+volumes:
+  github_fixture_https:
+  github_source_snapshots:

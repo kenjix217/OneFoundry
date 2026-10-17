@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "onefoundry-company-memory",
+  "version": "0.2.0",
+  "description": "Search authoritative reviewed company facts. Existing keys stay read-only; a separately granted capture key can preview and submit explicitly selected company excerpts for operator review.",
+  "author": { "name": "OneFoundry operator" },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "OneFoundry Company Memory",
+        "shortDescription": "Reviewed company memory",
+        "longDescription": "Read current approved company facts with source citations. Optional bounded conversation capture creates pending candidates. The server enforces project and company grants; operator review, deletion, raw database access, and hidden chats are unavailable.",
+        "developerName": "OneFoundry operator",
+        "category": "Productivity",
+        "defaultPrompt": "Find approved company context relevant to this project and cite the current source-linked facts."
+      }
+    }
+  }
+}

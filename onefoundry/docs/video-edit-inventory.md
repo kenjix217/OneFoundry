@@ -1,0 +1,19 @@
+# Actual production inventory
+
+Verified against the producer-owned `output/districtai-three-demos-20261006/VIDEO-EDITING-HANDOFF.md`, task scripts and retained provenance on 2026-10-06. Hash-bound copies of task-owned references are retained in `output/video-capability-20261006/producer-reference/`; credentials, assistant private instructions, Codex configuration and customer media were not copied into the capability.
+
+| Actual component | Evidence and reuse |
+| --- | --- |
+| Playwright CLI and `/home/ken/.codex/skills/playwright/SKILL.md` | Actual React UI capture via `playwright_cli.sh`, task `districtai-three-capture.py`. [Playwright](https://github.com/microsoft/playwright) declares Apache-2.0. Capture/browser access is separate and is not enabled by the edit tool. |
+| FFmpeg 6.1.1 on producer host | Task `render_clean_video.py`: trim/concat, contain/pad, ASS/SRT captions, complete separate PCM normalization, mix/limit and MP4/WebM export. Uses libx264/libvpx/libass/libopus. Host build enables GPL; [FFmpeg licensing](https://ffmpeg.org/legal.html) explains optional GPL parts. Candidate invokes a separately installed image executable and does not relicense or bundle host binaries. Preserve distribution notices/source obligations when packaging that image. |
+| Kokoro ONNX narration | `prepare_*_narration.py`, producer `/tmp/districtai-narration-{synthesize,produce}.py`, stock adult English `af_heart`, speed 1, two intra-op/one inter-op CPU threads. Exact model/voice hashes are retained in `model-provenance.json`. Model declares [Apache-2.0](https://huggingface.co/hexgrad/Kokoro-82M); [kokoro-onnx runtime](https://github.com/thewh1teagle/kokoro-onnx/blob/main/LICENSE) declares MIT. Stock listing is not independent voice-rights clearance. No TTS runtime/model is added in this patch. |
+| Original music | Task-owned `districtai-upbeat-original.py`, original 112 BPM additive synthesis, no stock/sample audio. `upbeat-music-provenance.json` records exact WAV identity. Its recipe is retained for review; no stock license is invented. |
+| Generated scene images | Task ImageGen assets with Library identity/scene hashes. Editing consumes authorized image assets; image generation or upload to a provider remains separate. |
+| Private delivery | Actual Library skill/helper handled delivery. No private Library, publishing or outbound grant is copied. |
+| Objective QC | `verify_audio_tail.py` and late-window PCM correlation. Metadata duration alone previously missed missing narration. The adapted child fully decodes, measures decoded audio length and compares ending mix samples. Human hearing/intelligibility/readability remain distinct review gates. |
+
+The task-only narration environment observed `kokoro-onnx 0.6.1`, `onnxruntime 1.30.0`, `numpy 2.5.3`, `soundfile 0.13.1`, `phonemizer 3.4.0`, `espeakng-loader 0.2.4`. The producer retained Apache/MIT license texts and noted phonemizer GPLv3 metadata. Review every transitive license before packaging synthesis; none of these new packages is installed or added to the OneFoundry lockfile here.
+
+The disposable candidate image actually ran Debian FFmpeg `7.1.5-0+deb13u1`, with GPL enabled and libx264/libvpx/libass/libopus available. Its exact version/build output is retained in `output/video-capability-20261006/renderer-version.txt`; the native receipt pins the image digest. This is a separately tested implementation of the producer's editing procedure.
+
+The registered capability is an adaptation of task-owned editing behavior with typed settings, project-owned IDs and a separate bounded worker. It does not transplant hidden model instructions or the whole Codex environment. Later generation adapters, including an explicitly approved Grok adapter, may materialize authorized project media through the same intake; no unsupported API, credential or paid call is assumed.

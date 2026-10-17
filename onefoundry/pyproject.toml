@@ -1,0 +1,63 @@
+[project]
+name = "onefoundry"
+version = "0.20.0"
+description = "Local OneFoundry service skeleton"
+requires-python = "==3.12.*"
+dependencies = [
+  "alembic>=1.16,<2",
+  "discord.py==2.7.1",
+  "fastapi>=0.116,<1",
+  "httpx>=0.28,<1",
+  "jsonschema>=4.26,<5",
+  "mcp>=2.2,<2.3",
+  "onefoundry-sdk",
+  "openai-agents>=0.22.3,<0.23",
+  "pillow>=12.2,<13",
+  "qrcode==8.2",
+  "psycopg[binary]>=3.2,<4",
+  "pydantic-settings>=2.10,<3",
+  "pyjwt[crypto]>=2.15,<3",
+  "sqlalchemy>=2.0,<3",
+  "uvicorn>=0.35,<1",
+]
+
+[tool.uv.sources]
+onefoundry-sdk = { path = "sdk/python", editable = true }
+
+[dependency-groups]
+dev = [
+  "mypy>=1.17,<2",
+  "pytest>=8.4,<10",
+  "ruff>=0.12,<1",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/onefoundry"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["integration: requires an installed Docker daemon and local image"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+files = ["scripts/check_extension_isolation.py","runner/extension_worker_child.py","runner/extension_worker_host.py","runner/extension_worker_supervisor.py","runner/extension_fixture_test.py","runner/extension_approval_readback.py","runner/capability_setup_settings.py","runner/capability_setup_worker.py","runner/repository_runner_credentials.py","runner/extension_release_prepare.py","runner/extension_release_worker.py", "runner/extension_source_checkout.py","runner/video_edit_render.py","runner/video_edit_supervisor.py","runner/video_edit_worker.py","src","tests","migrations","runner/contract.py","runner/fixture_git.py","runner/service.py","runner/external_cli.py","runner/external_service.py","runner/external_launch_journal.py","runner/external_offline_supervisor.py","runner/trusted_local_supervisor.py","runner/trusted_local_cli.py","runner/provider_progress.py","runner/live_progress_spool.py","runner/action_trace.py","runner/isolated_fixture_test.py","runner/isolated_cli.py","runner/docker_egress_proof.py","runner/cli_image_admission.py","runner/codex_cli_admission.py","runner/claude_cli_admission.py","runner/codex_local_responses_proof.py","runner/codex_local_responses_child.py","runner/codex_workorder_fixture.py","runner/codex_workorder_fixture_child.py","runner/codex_broker_policy.py","runner/codex_broker_child.py","runner/codex_broker_proof.py","runner/egress_probe_child.py","runner/local_source_stage.py","runner/github_fixture_stage.py","runner/github_stage_supervisor.py","scripts/prepare_offline_github_fixture.py","runner/local_source_probe.py","runner/probe_child.py","runner/host_probe_bridge.py","runner/probe_volume_bridge.py","runner/repository_code_stage.py","runner/repository_code_service.py","runner/repository_code_offline_bridge.py","runner/repository_source_view.py","runner/repository_runner_settings.py","runner/repository_codex_bridge.py","runner/repository_provider_policy.py","runner/repository_provider_broker.py","runner/repository_code_supervisor.py", "runner/repository_transport.py","runner/extension_qa_service.py","runner/extension_release_record.py","runner/extension_release_supervisor.py"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101", "S105", "S106"]
+
+[tool.ruff.lint.per-file-ignores]
+# These operator commands intentionally invoke Git and Docker with argument arrays.
+"scripts/release_bundle.py" = ["S603", "S607"]
+"scripts/onefoundry_update.py" = ["S603", "S607"]

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+scanner="$repo_root/.git/tools/gitleaks"
+if [[ ! -x "$scanner" ]] || [[ "$("$scanner" version 2>/dev/null)" != '8.30.1' ]]; then
+  echo 'Pinned Gitleaks v8.30.1 is required. Run: python3 onefoundry/scripts/install_gitleaks.py .git/tools/gitleaks' >&2
+  exit 2
+fi
+status=0
+python3 "$repo_root/onefoundry/scripts/git_hygiene.py" --history || status=1
+"$scanner" git --no-banner --no-color --redact --log-level=error --log-opts='--all' "$repo_root" || status=1
+exit "$status"

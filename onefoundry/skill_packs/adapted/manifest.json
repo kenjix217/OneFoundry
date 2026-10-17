@@ -1,0 +1,1368 @@
+{
+  "format": 1,
+  "skills": [
+    {
+      "name": "work planning",
+      "description": "Plan minimal, specialist-owned work orders and explicit handoffs.",
+      "file": "work-planning.md",
+      "derived_from": [
+        "paperclip:skills/paperclip-converting-plans-to-tasks/SKILL.md",
+        "paperclip:packages/skills-catalog/catalog/bundled/paperclip-operations/task-planning/SKILL.md"
+      ]
+    },
+    {
+      "name": "intake triage",
+      "description": "Review new work against project goals, ownership, and evidence.",
+      "file": "intake-triage.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/bundled/paperclip-operations/issue-triage/SKILL.md"
+      ]
+    },
+    {
+      "name": "QA acceptance",
+      "description": "Review run receipts and user-visible outcomes before completion.",
+      "file": "qa-acceptance.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/bundled/quality/qa-acceptance/SKILL.md"
+      ]
+    },
+    {
+      "name": "skill authoring",
+      "description": "Draft bounded, testable procedures for the project Skill Library.",
+      "file": "skill-authoring.md",
+      "derived_from": [
+        "codex:skills/.system/skill-creator/SKILL.md"
+      ]
+    },
+    {
+      "name": "clear writing",
+      "description": "Rewrite supplied text clearly without changing its facts.",
+      "file": "clear-writing.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/optional/content/simplified-english/SKILL.md"
+      ]
+    },
+    {
+      "name": "release announcement draft",
+      "description": "Draft release communication from verified supplied facts.",
+      "file": "release-announcement.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/optional/content/release-announcement/SKILL.md"
+      ]
+    },
+    {
+      "name": "content calendar draft",
+      "description": "Plan draft content from supplied goals and approved messages.",
+      "file": "content-calendar.md",
+      "derived_from": [
+        "paperclip:packages/teams-catalog/catalog/optional/content/content-machine/skills/content-calendar/SKILL.md"
+      ]
+    },
+    {
+      "name": "written UX critique",
+      "description": "Review a supplied written UI description for usability risks.",
+      "file": "written-ux-critique.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/optional/product/design-critique/SKILL.md"
+      ]
+    },
+    {
+      "name": "custom profile design",
+      "description": "Draft a role profile for operator review and setup.",
+      "file": "custom-profile-design.md",
+      "derived_from": [
+        "paperclip:skills/paperclip-create-agent/SKILL.md"
+      ]
+    },
+    {
+      "name": "KPI design",
+      "description": "Define measurable KPIs from supplied project context.",
+      "file": "kpi-design.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/design-kpis/SKILL.md"
+      ]
+    },
+    {
+      "name": "market sizing",
+      "description": "Build labeled market scenarios from supplied inputs.",
+      "file": "market-sizing.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/market-sizing/SKILL.md"
+      ]
+    },
+    {
+      "name": "business decision memo",
+      "description": "Compare options using supplied metrics and stated goals.",
+      "file": "business-decision.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/product-business-analysis/SKILL.md"
+      ]
+    },
+    {
+      "name": "context framing",
+      "description": "Organize supplied and approved-memory context for a decision.",
+      "file": "context-framing.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/gather-business-context/SKILL.md"
+      ]
+    },
+    {
+      "name": "supplied-data review",
+      "description": "Assess quality limits of supplied data excerpts and calculations.",
+      "file": "supplied-data-review.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/analyze-data-quality/SKILL.md"
+      ]
+    },
+    {
+      "name": "project status brief",
+      "description": "Summarize evidenced project progress and operator actions.",
+      "file": "project-status-brief.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/bundled/paperclip-operations/summarize-status/SKILL.md"
+      ]
+    },
+    {
+      "name": "stalled-work diagnosis",
+      "description": "Diagnose a named stalled run from saved owner evidence.",
+      "file": "stalled-work-diagnosis.md",
+      "derived_from": [
+        "paperclip:.agents/skills/diagnose-why-work-stopped/SKILL.md"
+      ]
+    },
+    {
+      "name": "supplied KPI readout",
+      "description": "Report KPIs from supplied actuals and definitions.",
+      "file": "supplied-kpi-readout.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/kpi-reporting/SKILL.md"
+      ]
+    },
+    {
+      "name": "supplied metric diagnosis",
+      "description": "Explain metric movement within supplied evidence.",
+      "file": "supplied-metric-diagnosis.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/metric-diagnostics/SKILL.md"
+      ]
+    },
+    {
+      "name": "supplied analysis review",
+      "description": "Check a supplied analysis and state verification limits.",
+      "file": "supplied-analysis-review.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/validate-data/SKILL.md"
+      ]
+    },
+    {
+      "name": "documentation drift review",
+      "description": "Report documentation gaps from scoped saved repository evidence.",
+      "file": "documentation-drift-review.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/bundled/docs/doc-maintenance/SKILL.md"
+      ]
+    },
+    {
+      "name": "PR briefing draft",
+      "description": "Brief one approved bounded GitHub PR for operator review.",
+      "file": "pr-briefing-draft.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/bundled/software-development/github-pr-workflow/SKILL.md"
+      ]
+    },
+    {
+      "name": "visual accessibility brief",
+      "description": "Draft text alternatives and visual accessibility checks.",
+      "file": "visual-accessibility-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/accessibility-and-inclusive-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "public company meeting brief",
+      "description": "Prepare cited questions for a public-company meeting.",
+      "file": "public-company-meeting-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/meeting-prep/SKILL.md"
+      ]
+    },
+    {
+      "name": "public catalyst brief",
+      "description": "Summarize a named public-company event with timing confidence.",
+      "file": "public-catalyst-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/catalyst-calendar/SKILL.md"
+      ]
+    },
+    {
+      "name": "profile improvement proposal",
+      "description": "Propose an evidence-based change to another agent profile.",
+      "file": "profile-improvement-proposal.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/bundled/paperclip-operations/reflection-coach/SKILL.md"
+      ]
+    },
+    {
+      "name": "manual engineering review",
+      "description": "Review a project's next engineering deliverables on request.",
+      "file": "manual-engineering-review.md",
+      "derived_from": [
+        "paperclip:packages/teams-catalog/catalog/bundled/software-development/product-engineering/TEAM.md",
+        "paperclip:packages/teams-catalog/catalog/bundled/software-development/product-engineering/projects/product-engineering/tasks/weekly-engineering-sync/TASK.md"
+      ]
+    },
+    {
+      "name": "integration research brief",
+      "description": "Research a named external connection before implementation.",
+      "file": "integration-research-brief.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/optional/software-development/prepare-mcp-integration/SKILL.md"
+      ]
+    },
+    {
+      "name": "public issuer baseline",
+      "description": "Prepare a quick public-source issuer baseline.",
+      "file": "public-issuer-baseline.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/company-tearsheet/SKILL.md"
+      ]
+    },
+    {
+      "name": "public equity idea triage",
+      "description": "Prioritize named public issuers for further research.",
+      "file": "public-equity-idea-triage.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/idea-generation/SKILL.md"
+      ]
+    },
+    {
+      "name": "short pre-earnings brief",
+      "description": "Draft a short preview before a named issuer reports.",
+      "file": "pre-earnings-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/earnings-preview/SKILL.md"
+      ]
+    },
+    {
+      "name": "short post-earnings brief",
+      "description": "Draft a quick read after a named issuer reports.",
+      "file": "post-earnings-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/earnings-deep-dive/SKILL.md"
+      ]
+    },
+    {
+      "name": "security hardening options",
+      "description": "Compare structural options for a supplied security finding.",
+      "file": "security-hardening-options.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/propose-security-hardening/SKILL.md"
+      ]
+    },
+    {
+      "name": "supplied artifact summary",
+      "description": "Summarize an exact supplied analysis artifact excerpt.",
+      "file": "supplied-artifact-summary.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/share-artifact-summary/SKILL.md"
+      ]
+    },
+    {
+      "name": "public peer comps screen",
+      "description": "Screen public issuer peers from dated supplied inputs.",
+      "file": "public-peer-comps-screen.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/comps-valuation/SKILL.md"
+      ]
+    },
+    {
+      "name": "public equity shock brief",
+      "description": "Trace a public event to listed-equity exposure.",
+      "file": "equity-shock-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/economic-impact-report/SKILL.md"
+      ]
+    },
+    {
+      "name": "public equity memo update",
+      "description": "Draft a short public-equity memo update from supplied analysis.",
+      "file": "equity-memo-update.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/memo-builder/SKILL.md"
+      ]
+    },
+    {
+      "name": "public equity scenario screen",
+      "description": "Calculate a small scenario table from a supplied base case.",
+      "file": "equity-scenario-screen.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/scenario-sensitivity-generator/SKILL.md"
+      ]
+    },
+    {
+      "name": "public equity thesis update",
+      "description": "Review a supplied prior thesis against dated evidence.",
+      "file": "equity-thesis-update.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/thesis-tracker/SKILL.md"
+      ]
+    },
+    {
+      "name": "banking meeting brief",
+      "description": "Prepare a bounded transaction or lender meeting note.",
+      "file": "banking-meeting-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/meeting-prep/SKILL.md"
+      ]
+    },
+    {
+      "name": "banking company baseline",
+      "description": "Profile a target, borrower, issuer, or counterparty for screening.",
+      "file": "banking-company-baseline.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/company-tearsheet/SKILL.md"
+      ]
+    },
+    {
+      "name": "preliminary buyer universe",
+      "description": "Draft a sourced starter queue of potential counterparties.",
+      "file": "buyer-universe-starter.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/buyer-investor-list/SKILL.md"
+      ]
+    },
+    {
+      "name": "capital market window brief",
+      "description": "Frame issuer financing timing from dated limited evidence.",
+      "file": "capital-window-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/capital-markets-issuance/SKILL.md"
+      ]
+    },
+    {
+      "name": "initial private credit screen",
+      "description": "Screen a proposed borrower from supplied credit evidence.",
+      "file": "initial-credit-screen.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/private-credit-underwriting/SKILL.md"
+      ]
+    },
+    {
+      "name": "distressed screening note",
+      "description": "Frame a distressed case from thin or public evidence.",
+      "file": "distressed-screening-note.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/distressed-recovery-waterfall/SKILL.md"
+      ]
+    },
+    {
+      "name": "banking quick comps review",
+      "description": "Review banker peer comps from dated supplied inputs.",
+      "file": "banking-quick-comps.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/comps-valuation/SKILL.md"
+      ]
+    },
+    {
+      "name": "contribution review",
+      "description": "Review a complete supplied contribution packet.",
+      "file": "contribution-review.md",
+      "derived_from": [
+        "paperclip:.agents/skills/pr-report/SKILL.md"
+      ]
+    },
+    {
+      "name": "release changelog draft",
+      "description": "Draft release notes from a verified candidate range.",
+      "file": "release-changelog-draft.md",
+      "derived_from": [
+        "paperclip:.agents/skills/release-changelog/SKILL.md"
+      ]
+    },
+    {
+      "name": "first priority review",
+      "description": "Choose the next reviewable project work order on request.",
+      "file": "first-priority-review.md",
+      "derived_from": [
+        "paperclip:packages/teams-catalog/catalog/bundled/company-defaults/core-exec-team/TEAM.md",
+        "paperclip:packages/teams-catalog/catalog/bundled/company-defaults/core-exec-team/projects/first-project/tasks/first-heartbeat/TASK.md",
+        "paperclip:skills/paperclip/references/routines.md",
+        "paperclip:skills/paperclip/references/workflows.md"
+      ]
+    },
+    {
+      "name": "design work review",
+      "description": "Triage supplied design requests and UX regressions.",
+      "file": "design-work-review.md",
+      "derived_from": [
+        "paperclip:packages/teams-catalog/catalog/bundled/product/product-design/TEAM.md",
+        "paperclip:packages/teams-catalog/catalog/bundled/product/product-design/projects/product-design/tasks/weekly-design-review/TASK.md"
+      ]
+    },
+    {
+      "name": "content work review",
+      "description": "Choose content drafts and identify publication blockers.",
+      "file": "content-work-review.md",
+      "derived_from": [
+        "paperclip:packages/teams-catalog/catalog/optional/content/content-machine/TEAM.md",
+        "paperclip:packages/teams-catalog/catalog/optional/content/content-machine/projects/content-operations/tasks/weekly-content-review/TASK.md"
+      ]
+    },
+    {
+      "name": "artifact handoff",
+      "description": "Hand a saved deliverable to the operator or QA.",
+      "file": "artifact-handoff.md",
+      "derived_from": [
+        "paperclip:skills/paperclip/references/artifacts.md"
+      ]
+    },
+    {
+      "name": "skill assignment review",
+      "description": "Review a proposed profile procedure binding.",
+      "file": "skill-assignment-review.md",
+      "derived_from": [
+        "paperclip:skills/paperclip/references/company-skills.md"
+      ]
+    },
+    {
+      "name": "chart choice and critique",
+      "description": "Select or critique a chart from supplied evidence.",
+      "file": "chart-choice-critique.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/visualization-strategy-and-critique/SKILL.md"
+      ]
+    },
+    {
+      "name": "uncertainty chart plan",
+      "description": "Specify uncertainty displays from supplied measures.",
+      "file": "uncertainty-chart-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/statistical-and-uncertainty-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "schedule visual plan",
+      "description": "Plan a schedule view from supplied tasks and dates.",
+      "file": "schedule-visual-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/gantt-chart-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "map visual plan",
+      "description": "Plan a geographic display from supplied location data.",
+      "file": "map-visual-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/geospatial-and-cartographic-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "graph layout plan",
+      "description": "Plan a node and link display from supplied relationships.",
+      "file": "graph-layout-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/node-link-and-diagram-layout/SKILL.md"
+      ]
+    },
+    {
+      "name": "architecture diagram plan",
+      "description": "Specify an architecture diagram from supplied system facts.",
+      "file": "architecture-diagram-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/uml-and-software-architecture-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "dashboard behavior plan",
+      "description": "Specify dashboard states and interactions from supplied metrics.",
+      "file": "dashboard-behavior-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/dashboards-and-real-time-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "visualization test plan",
+      "description": "Plan checks for a supplied visual specification.",
+      "file": "visualization-test-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/testing-data-visualizations/SKILL.md"
+      ]
+    },
+    {
+      "name": "scrollytelling scene plan",
+      "description": "Outline an evidence-backed scroll story from supplied facts.",
+      "file": "scrollytelling-scene-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/scrollytelling-and-parallax-data-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "report and slide figure plan",
+      "description": "Plan figures for a report or slide deck from supplied findings.",
+      "file": "report-slide-figure-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/reports-pdfs-and-slide-automation/SKILL.md"
+      ]
+    },
+    {
+      "name": "engineering defect diagnosis",
+      "description": "Diagnose one named defect from bounded evidence.",
+      "file": "engineering-defect-diagnosis.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/systematic-debugging/SKILL.md",
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/verification-before-completion/SKILL.md"
+      ]
+    },
+    {
+      "name": "immutable patch risk brief",
+      "description": "Assess a supplied immutable patch and its evidence gaps.",
+      "file": "immutable-patch-risk-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/assess-patch-risk/SKILL.md",
+        "codex:skills/.system/review-agent/SKILL.md"
+      ]
+    },
+    {
+      "name": "provisional security finding triage",
+      "description": "Triage a supplied security claim and missing validation.",
+      "file": "provisional-security-finding-triage.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/triage-finding/SKILL.md",
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/threat-model/SKILL.md",
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/attack-path-analysis/SKILL.md"
+      ]
+    },
+    {
+      "name": "PR readiness evidence review",
+      "description": "a reviewer asks whether a named change is ready for human review.",
+      "file": "pr-check-readiness.md",
+      "derived_from": [
+        "paperclip:.agents/skills/check-pr/SKILL.md"
+      ]
+    },
+    {
+      "name": "Company package planning",
+      "description": "an operator wants to translate a company or repository concept into an OneFoundry setup proposal.",
+      "file": "company-package-plan.md",
+      "derived_from": [
+        "paperclip:.agents/skills/company-creator/SKILL.md"
+      ]
+    },
+    {
+      "name": "Coding provider adapter design",
+      "description": "an engineer is asked to plan a new external coding provider connection.",
+      "file": "provider-adapter-design.md",
+      "derived_from": [
+        "paperclip:.agents/skills/create-agent-adapter/SKILL.md"
+      ]
+    },
+    {
+      "name": "Work-order interaction surface plan",
+      "description": "an operator asks for a new user or agent interaction on a work-order timeline.",
+      "file": "interaction-surface-plan.md",
+      "derived_from": [
+        "paperclip:.agents/skills/create-issue-interaction-ui/SKILL.md"
+      ]
+    },
+    {
+      "name": "Skill Library candidate review",
+      "description": "an operator proposes a reusable procedure for the project Skill Library.",
+      "file": "skill-catalog-candidate.md",
+      "derived_from": [
+        "paperclip:.agents/skills/create-paperclip-bundled-skill/SKILL.md"
+      ]
+    },
+    {
+      "name": "Private security advisory response plan",
+      "description": "an operator supplies a confidential vulnerability report and asks for a response sequence.",
+      "file": "advisory-response-plan.md",
+      "derived_from": [
+        "paperclip:.agents/skills/deal-with-security-advisory/SKILL.md"
+      ]
+    },
+    {
+      "name": "Documentation update plan",
+      "description": "a named behavior change requires edits to user or operator documentation.",
+      "file": "documentation-update-plan.md",
+      "derived_from": [
+        "paperclip:.agents/skills/doc-maintenance/SKILL.md"
+      ]
+    },
+    {
+      "name": "Operator inbox cleanup proposal",
+      "description": "an operator asks which inbox items can be safely archived.",
+      "file": "operator-inbox-triage.md",
+      "derived_from": [
+        "paperclip:.agents/skills/garden-inbox/SKILL.md"
+      ]
+    },
+    {
+      "name": "extension package plan",
+      "description": "an engineer is exploring a new external tool or plugin integration.",
+      "file": "plugin-extension-plan.md",
+      "derived_from": [
+        "paperclip:.agents/skills/paperclip-create-plugin/SKILL.md"
+      ]
+    },
+    {
+      "name": "Development workspace diagnosis",
+      "description": "a developer reports that a local test instance is unreachable, unhealthy, or serving unexpected data.",
+      "file": "development-workspace-diagnosis.md",
+      "derived_from": [
+        "paperclip:.agents/skills/paperclip-dev-workspace-run-verify-fix/SKILL.md"
+      ]
+    },
+    {
+      "name": "Page publication plan",
+      "description": "an operator wants a page drafted or an existing page updated.",
+      "file": "page-publication-plan.md",
+      "derived_from": [
+        "paperclip:.agents/skills/paperclip-page/SKILL.md"
+      ]
+    },
+    {
+      "name": "Owned PR portfolio triage",
+      "description": "an operator wants to prioritize several PRs their team owns.",
+      "file": "pr-portfolio-triage.md",
+      "derived_from": [
+        "paperclip:.agents/skills/pr-gardening/SKILL.md"
+      ]
+    },
+    {
+      "name": "PR check-cycle diagnosis",
+      "description": "a named PR has failing, missing, or pending checks.",
+      "file": "pr-check-cycle-plan.md",
+      "derived_from": [
+        "paperclip:.agents/skills/prcheckloop/SKILL.md"
+      ]
+    },
+    {
+      "name": "PR submission preparation",
+      "description": "an Engineer run has a candidate change that may be submitted for review.",
+      "file": "pr-submission-plan.md",
+      "derived_from": [
+        "paperclip:.agents/skills/prepare-paperclip-pr/SKILL.md"
+      ]
+    },
+    {
+      "name": "Channel-specific release message",
+      "description": "an operator requests a community-channel message tied to a release.",
+      "file": "channel-announcement-plan.md",
+      "derived_from": [
+        "paperclip:.agents/skills/release-changelog-discord-message/SKILL.md"
+      ]
+    },
+    {
+      "name": "Release gate coordination plan",
+      "description": "an operator asks what evidence is needed to promote a candidate release.",
+      "file": "release-gate-plan.md",
+      "derived_from": [
+        "paperclip:.agents/skills/release/SKILL.md"
+      ]
+    },
+    {
+      "name": "Benchmark iteration plan",
+      "description": "an Engineer wants to improve a named benchmark task over bounded iterations.",
+      "file": "benchmark-iteration-plan.md",
+      "derived_from": [
+        "paperclip:.agents/skills/terminal-bench-loop/SKILL.md"
+      ]
+    },
+    {
+      "name": "Design system fit review",
+      "description": "a proposed UI change should be checked against an existing product design system.",
+      "file": "design-system-fit-review.md",
+      "derived_from": [
+        "paperclip:.claude/skills/design-guide/SKILL.md"
+      ]
+    },
+    {
+      "name": "External task bridge contract",
+      "description": "an operator wants another assistant or service to create or update OneFoundry work orders.",
+      "file": "task-bridge-contract.md",
+      "derived_from": [
+        "paperclip:packages/adapters/hermes/skills/paperclip-task-bridge/SKILL.md"
+      ]
+    },
+    {
+      "name": "Knowledge index reconciliation",
+      "description": "an operator supplies a bounded knowledge-page inventory and asks for an index refresh proposal.",
+      "file": "knowledge-index-refresh.md",
+      "derived_from": [
+        "paperclip:packages/plugins/plugin-llm-wiki/skills/index-refresh/SKILL.md"
+      ]
+    },
+    {
+      "name": "Project activity distillation",
+      "description": "an operator supplies a complete, bounded activity bundle for one project and asks for durable synthesis.",
+      "file": "project-activity-distillation.md",
+      "derived_from": [
+        "paperclip:packages/plugins/plugin-llm-wiki/skills/paperclip-distill/SKILL.md"
+      ]
+    },
+    {
+      "name": "Source knowledge ingestion proposal",
+      "description": "an operator asks to turn one supplied source into reusable project knowledge.",
+      "file": "source-knowledge-ingest.md",
+      "derived_from": [
+        "paperclip:packages/plugins/plugin-llm-wiki/skills/wiki-ingest/SKILL.md"
+      ]
+    },
+    {
+      "name": "Knowledge consistency audit",
+      "description": "an operator supplies an index, linked pages, and sources for one knowledge scope.",
+      "file": "knowledge-consistency-audit.md",
+      "derived_from": [
+        "paperclip:packages/plugins/plugin-llm-wiki/skills/wiki-lint/SKILL.md"
+      ]
+    },
+    {
+      "name": "Knowledge maintenance routing",
+      "description": "a project has a knowledge request that could be a question, source ingest, project distillation, index repair, or integrity audit.",
+      "file": "knowledge-maintenance-router.md",
+      "derived_from": [
+        "paperclip:packages/plugins/plugin-llm-wiki/skills/wiki-maintainer/SKILL.md"
+      ]
+    },
+    {
+      "name": "Cited knowledge answer",
+      "description": "an operator asks a factual question about a project’s saved knowledge.",
+      "file": "knowledge-answer.md",
+      "derived_from": [
+        "paperclip:packages/plugins/plugin-llm-wiki/skills/wiki-query/SKILL.md"
+      ]
+    },
+    {
+      "name": "Status card specification",
+      "description": "an operator wants a standing view of a narrow project question.",
+      "file": "status-card-spec.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/bundled/paperclip-operations/status-card-query/SKILL.md"
+      ]
+    },
+    {
+      "name": "Identity capsule review",
+      "description": "a team proposes small visual identity or status capsules for an OneFoundry surface.",
+      "file": "brand-capsule-review.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/bundled/product/paperclip-capsules/SKILL.md"
+      ]
+    },
+    {
+      "name": "Low-fidelity wireframe brief",
+      "description": "an operator wants the structure of a new screen or flow before implementation.",
+      "file": "wireframe-brief.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/bundled/product/wireframe/SKILL.md"
+      ]
+    },
+    {
+      "name": "Browser verification session plan",
+      "description": "a named flow needs real browser evidence.",
+      "file": "browser-session-plan.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/optional/browser/agent-browser/SKILL.md"
+      ]
+    },
+    {
+      "name": "Spend-tool connection gate",
+      "description": "an operator asks how a finance platform playbook could be used.",
+      "file": "finance-connection-gate.md",
+      "derived_from": [
+        "paperclip:packages/skills-catalog/catalog/optional/finance/ramp/SKILL.md"
+      ]
+    },
+    {
+      "name": "Legacy runtime contract mapping",
+      "description": "Map an older external execution procedure to current OneFoundry contracts.",
+      "file": "legacy-runtime-mapping.md",
+      "derived_from": [
+        "paperclip:skills-releases/paperclip/v0/SKILL.md"
+      ]
+    },
+    {
+      "name": "Roster-era runtime contract mapping",
+      "description": "Review an external roster-era execution model for possible OneFoundry reuse.",
+      "file": "roster-runtime-mapping.md",
+      "derived_from": [
+        "paperclip:skills-releases/paperclip/v7-roster/SKILL.md"
+      ]
+    },
+    {
+      "name": "Email task and delivery plan",
+      "description": "an operator wants an agent to read, draft, or send email.",
+      "file": "email-delivery-plan.md",
+      "derived_from": [
+        "paperclip:skills/agentmail/SKILL.md"
+      ]
+    },
+    {
+      "name": "Operator board operations map",
+      "description": "Map an external board flow to OneFoundry’s single-operator setup.",
+      "file": "board-operations-map.md",
+      "derived_from": [
+        "paperclip:skills/paperclip-board/SKILL.md"
+      ]
+    },
+    {
+      "name": "current external-workflow contract map",
+      "description": "Check whether an external agent action or workflow has an OneFoundry owner.",
+      "file": "current-runtime-contract-map.md",
+      "derived_from": [
+        "paperclip:skills/paperclip/SKILL.md"
+      ]
+    },
+    {
+      "name": "Durable memory organization proposal",
+      "description": "an operator wants to retain and retrieve project facts across runs.",
+      "file": "durable-memory-organization.md",
+      "derived_from": [
+        "paperclip:skills/para-memory-files/SKILL.md"
+      ]
+    },
+    {
+      "name": "analytics dashboard template intake",
+      "description": "Prepare a source-grounded analytics dashboard spreadsheet from a selected reference.",
+      "file": "template-analytics-dashboard.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-analytics-dashboard/SKILL.md"
+      ]
+    },
+    {
+      "name": "business review template intake",
+      "description": "Prepare a source-grounded business review presentation from a selected reference.",
+      "file": "template-business-review.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-business-review/SKILL.md"
+      ]
+    },
+    {
+      "name": "design report template intake",
+      "description": "Prepare a source-grounded design report document from a selected reference.",
+      "file": "template-design-report.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-design-report/SKILL.md"
+      ]
+    },
+    {
+      "name": "experiment analysis template intake",
+      "description": "Prepare a source-grounded experiment analysis document from a selected reference.",
+      "file": "template-experiment-analysis.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-experiment-analysis/SKILL.md"
+      ]
+    },
+    {
+      "name": "financial budget template intake",
+      "description": "Prepare a source-grounded financial budget spreadsheet from a selected reference.",
+      "file": "template-financial-budget.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-financial-budget/SKILL.md"
+      ]
+    },
+    {
+      "name": "investment committee memo template intake",
+      "description": "Prepare a source-grounded investment committee memo document from a selected reference.",
+      "file": "template-investment-committee-memo.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-investment-committee-memo/SKILL.md"
+      ]
+    },
+    {
+      "name": "legal memorandum template intake",
+      "description": "Prepare a source-grounded legal memorandum document from a selected reference.",
+      "file": "template-legal-memorandum.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-legal-memorandum/SKILL.md"
+      ]
+    },
+    {
+      "name": "market trends report template intake",
+      "description": "Prepare a source-grounded market trends report presentation from a selected reference.",
+      "file": "template-market-trends-report.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-market-trends-report/SKILL.md"
+      ]
+    },
+    {
+      "name": "minimal letterhead template intake",
+      "description": "Prepare a source-grounded minimal letterhead document from a selected reference.",
+      "file": "template-minimal-letterhead.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-minimal-letterhead/SKILL.md"
+      ]
+    },
+    {
+      "name": "operating calendar template intake",
+      "description": "Prepare a source-grounded operating calendar spreadsheet from a selected reference.",
+      "file": "template-operating-calendar.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-operating-calendar/SKILL.md"
+      ]
+    },
+    {
+      "name": "operating review template intake",
+      "description": "Prepare a source-grounded operating review presentation from a selected reference.",
+      "file": "template-operating-review.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-operating-review/SKILL.md"
+      ]
+    },
+    {
+      "name": "project kickoff template intake",
+      "description": "Prepare a source-grounded project kickoff presentation from a selected reference.",
+      "file": "template-project-kickoff.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-project-kickoff/SKILL.md"
+      ]
+    },
+    {
+      "name": "project tracker template intake",
+      "description": "Prepare a source-grounded project tracker spreadsheet from a selected reference.",
+      "file": "template-project-tracker.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-project-tracker/SKILL.md"
+      ]
+    },
+    {
+      "name": "sales pipeline template intake",
+      "description": "Prepare a source-grounded sales pipeline spreadsheet from a selected reference.",
+      "file": "template-sales-pipeline.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-sales-pipeline/SKILL.md"
+      ]
+    },
+    {
+      "name": "simple dark mode template intake",
+      "description": "Prepare a source-grounded simple dark mode presentation from a selected reference.",
+      "file": "template-simple-dark-mode.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-simple-dark-mode/SKILL.md"
+      ]
+    },
+    {
+      "name": "simple light mode template intake",
+      "description": "Prepare a source-grounded simple light mode presentation from a selected reference.",
+      "file": "template-simple-light-mode.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-simple-light-mode/SKILL.md"
+      ]
+    },
+    {
+      "name": "strategy memorandum template intake",
+      "description": "Prepare a source-grounded strategy memorandum document from a selected reference.",
+      "file": "template-strategy-memorandum.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-strategy-memorandum/SKILL.md"
+      ]
+    },
+    {
+      "name": "system design template intake",
+      "description": "Prepare a source-grounded system design document from a selected reference.",
+      "file": "template-system-design.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-system-design/SKILL.md"
+      ]
+    },
+    {
+      "name": "team alignment template intake",
+      "description": "Prepare a source-grounded team alignment presentation from a selected reference.",
+      "file": "template-team-alignment.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-team-alignment/SKILL.md"
+      ]
+    },
+    {
+      "name": "three statement forecast template intake",
+      "description": "Prepare a source-grounded three statement forecast spreadsheet from a selected reference.",
+      "file": "template-three-statement-forecast.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-three-statement-forecast/SKILL.md"
+      ]
+    },
+    {
+      "name": "browser test brief",
+      "description": "browser test brief.",
+      "file": "browser-static-test-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-bundled/browser-use/0.1.0-alpha2/skills/browser/SKILL.md"
+      ]
+    },
+    {
+      "name": "in-app browser handoff",
+      "description": "in-app browser handoff.",
+      "file": "in-app-browser-handoff.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-bundled/browser/26.707.71524/skills/control-in-app-browser/SKILL.md"
+      ]
+    },
+    {
+      "name": "Chrome session review brief",
+      "description": "Chrome session review brief.",
+      "file": "chrome-session-review.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-bundled/chrome/26.707.71524/skills/control-chrome/SKILL.md"
+      ]
+    },
+    {
+      "name": "deep research intake",
+      "description": "deep research intake.",
+      "file": "deep-research-intake.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-bundled/deep-research/0.1.1/skills/deep-research/SKILL.md"
+      ]
+    },
+    {
+      "name": "site build brief",
+      "description": "site build brief.",
+      "file": "sites-build-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-bundled/sites/0.1.27/skills/sites-building/SKILL.md"
+      ]
+    },
+    {
+      "name": "Sites hosting release brief",
+      "description": "Sites hosting release brief.",
+      "file": "sites-hosting-release.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-bundled/sites/0.1.27/skills/sites-hosting/SKILL.md"
+      ]
+    },
+    {
+      "name": "interactive visual brief",
+      "description": "interactive visual brief.",
+      "file": "inline-interactive-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-bundled/visualize/1.0.11/skills/visualize/SKILL.md"
+      ]
+    },
+    {
+      "name": "Canvas2D render plan",
+      "description": "Canvas2D render plan.",
+      "file": "canvas2d-render-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/canvas2d-data-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "D3 and SVG render plan",
+      "description": "D3 and SVG render plan.",
+      "file": "d3-svg-render-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/d3-data-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "visualization route",
+      "description": "visualization route.",
+      "file": "visualization-route.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/data-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "declarative chart plan",
+      "description": "declarative chart plan.",
+      "file": "declarative-chart-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/grammar-of-graphics-and-declarative-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "React chart integration brief",
+      "description": "React chart integration brief.",
+      "file": "react-chart-integration.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/react-and-nextjs-data-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "WebGL visualization brief",
+      "description": "WebGL visualization brief.",
+      "file": "webgl-chart-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/threejs-data-visualization/SKILL.md"
+      ]
+    },
+    {
+      "name": "typed visualization contract",
+      "description": "typed visualization contract.",
+      "file": "typed-chart-contract.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/typescript-data-visualization-engineering/SKILL.md"
+      ]
+    },
+    {
+      "name": "DOCX production intake",
+      "description": "DOCX production intake.",
+      "file": "docx-production-intake.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-primary-runtime/documents/26.915.20218/skills/documents/SKILL.md"
+      ]
+    },
+    {
+      "name": "PDF production intake",
+      "description": "PDF production intake.",
+      "file": "pdf-production-intake.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-primary-runtime/pdf/26.915.20218/skills/pdf/SKILL.md"
+      ]
+    },
+    {
+      "name": "presentation production intake",
+      "description": "presentation production intake.",
+      "file": "presentation-production-intake.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-primary-runtime/presentations/26.915.20218/skills/presentations/SKILL.md"
+      ]
+    },
+    {
+      "name": "live Excel session intake",
+      "description": "live Excel session intake.",
+      "file": "excel-live-session-intake.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-primary-runtime/spreadsheets/26.915.20218/skills/excel-live-control/SKILL.md"
+      ]
+    },
+    {
+      "name": "spreadsheet production intake",
+      "description": "spreadsheet production intake.",
+      "file": "spreadsheet-production-intake.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-primary-runtime/spreadsheets/26.915.20218/skills/spreadsheets/SKILL.md"
+      ]
+    },
+    {
+      "name": "template library intake",
+      "description": "template library intake.",
+      "file": "template-library-intake.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-primary-runtime/template-creator/26.915.20218/skills/template-creator/SKILL.md"
+      ]
+    },
+    {
+      "name": "deep security scan preparation",
+      "description": "Deep security scan preparation.",
+      "file": "deep-security-scan-preparation.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/deep-security-scan/SKILL.md"
+      ]
+    },
+    {
+      "name": "security policy scope draft",
+      "description": "Security policy scope draft.",
+      "file": "security-policy-scope.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/define-security-policy/SKILL.md"
+      ]
+    },
+    {
+      "name": "security candidate discovery brief",
+      "description": "Security candidate discovery brief.",
+      "file": "security-candidate-discovery.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/finding-discovery/SKILL.md"
+      ]
+    },
+    {
+      "name": "security fix brief",
+      "description": "Security fix brief.",
+      "file": "security-fix-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/fix-finding/SKILL.md"
+      ]
+    },
+    {
+      "name": "security diff scan preparation",
+      "description": "Security diff scan preparation.",
+      "file": "security-diff-scan-preparation.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/security-diff-scan/SKILL.md"
+      ]
+    },
+    {
+      "name": "standard security scan preparation",
+      "description": "Standard security scan preparation.",
+      "file": "security-scan-preparation.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/security-scan/SKILL.md"
+      ]
+    },
+    {
+      "name": "security finding tracking proposal",
+      "description": "Security finding tracking proposal.",
+      "file": "security-finding-tracking.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/track-findings/SKILL.md"
+      ]
+    },
+    {
+      "name": "security candidate validation plan",
+      "description": "Security candidate validation plan.",
+      "file": "security-validation-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/validation/SKILL.md"
+      ]
+    },
+    {
+      "name": "security fix verification checklist",
+      "description": "Security fix verification checklist.",
+      "file": "security-fix-verification.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/verify-fix/SKILL.md"
+      ]
+    },
+    {
+      "name": "vulnerability report draft",
+      "description": "Vulnerability report draft.",
+      "file": "vulnerability-report-draft.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/vulnerability-writeup/SKILL.md"
+      ]
+    },
+    {
+      "name": "design discovery brief",
+      "description": "Design discovery brief.",
+      "file": "design-discovery.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/brainstorming/SKILL.md"
+      ]
+    },
+    {
+      "name": "agent workflow incident review",
+      "description": "Agent workflow incident review.",
+      "file": "workflow-incident-review.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/diagnosing-superpowers/SKILL.md"
+      ]
+    },
+    {
+      "name": "parallel work candidates",
+      "description": "Parallel work candidates.",
+      "file": "parallel-work-candidates.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/dispatching-parallel-agents/SKILL.md"
+      ]
+    },
+    {
+      "name": "plan execution ledger",
+      "description": "Plan execution ledger.",
+      "file": "plan-execution-ledger.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/executing-plans/SKILL.md"
+      ]
+    },
+    {
+      "name": "branch finish review",
+      "description": "Branch finish review.",
+      "file": "branch-finish-review.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/finishing-a-development-branch/SKILL.md"
+      ]
+    },
+    {
+      "name": "review feedback assessment",
+      "description": "Review feedback assessment.",
+      "file": "review-feedback-assessment.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/receiving-code-review/SKILL.md"
+      ]
+    },
+    {
+      "name": "code review request brief",
+      "description": "Code review request brief.",
+      "file": "review-request-brief.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/requesting-code-review/SKILL.md"
+      ]
+    },
+    {
+      "name": "delegated implementation plan",
+      "description": "Delegated implementation plan.",
+      "file": "delegated-implementation-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/subagent-driven-development/SKILL.md"
+      ]
+    },
+    {
+      "name": "regression-first implementation plan",
+      "description": "Regression-first implementation plan.",
+      "file": "regression-first-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/test-driven-development/SKILL.md"
+      ]
+    },
+    {
+      "name": "workspace isolation plan",
+      "description": "Workspace isolation plan.",
+      "file": "workspace-isolation-plan.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/using-git-worktrees/SKILL.md"
+      ]
+    },
+    {
+      "name": "procedure selection",
+      "description": "Procedure selection.",
+      "file": "procedure-selection.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/using-superpowers/SKILL.md"
+      ]
+    },
+    {
+      "name": "implementation plan draft",
+      "description": "Implementation plan draft.",
+      "file": "implementation-plan-draft.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/writing-plans/SKILL.md"
+      ]
+    },
+    {
+      "name": "procedure pressure-test plan",
+      "description": "Procedure pressure-test plan.",
+      "file": "procedure-pressure-test.md",
+      "derived_from": [
+        "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/writing-skills/SKILL.md"
+      ]
+    },
+    {
+      "name": "image asset brief",
+      "description": "Image asset brief.",
+      "file": "image-asset-brief.md",
+      "derived_from": [
+        "codex:skills/.system/imagegen/SKILL.md"
+      ]
+    },
+    {
+      "name": "OpenAI documentation lookup brief",
+      "description": "Openai documentation lookup brief.",
+      "file": "openai-docs-lookup.md",
+      "derived_from": [
+        "codex:skills/.system/openai-docs/SKILL.md"
+      ]
+    },
+    {
+      "name": "plugin package plan",
+      "description": "Plugin package plan.",
+      "file": "plugin-package-plan.md",
+      "derived_from": [
+        "codex:skills/.system/plugin-creator/SKILL.md"
+      ]
+    },
+    {
+      "name": "skill source install review",
+      "description": "Skill source install review.",
+      "file": "skill-source-install-review.md",
+      "derived_from": [
+        "codex:skills/.system/skill-installer/SKILL.md"
+      ]
+    },
+    {
+      "name": "browser acceptance plan",
+      "description": "Browser acceptance plan.",
+      "file": "browser-acceptance-plan.md",
+      "derived_from": [
+        "codex:skills/playwright/SKILL.md"
+      ]
+    }
+  ]
+}

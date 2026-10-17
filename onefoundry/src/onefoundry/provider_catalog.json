@@ -1,0 +1,416 @@
+{
+  "source": "DistrictAI model-catalog.ts snapshot 2026-09-26",
+  "providers": [
+    {
+      "id": "ai21",
+      "name": "AI21 Labs",
+      "kind": "api_key",
+      "family": "ai21",
+      "base_url": "https://api.ai21.com/studio/v1"
+    },
+    {
+      "id": "aleph_alpha",
+      "name": "Aleph Alpha",
+      "kind": "api_key",
+      "family": "aleph_alpha",
+      "base_url": "https://api.aleph-alpha.com/v1"
+    },
+    {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "kind": "api_key",
+      "family": "anthropic",
+      "base_url": "https://api.anthropic.com/v1"
+    },
+    {
+      "id": "anyscale",
+      "name": "Anyscale",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.endpoints.anyscale.com/v1"
+    },
+    {
+      "id": "azure",
+      "name": "Azure OpenAI",
+      "kind": "litellm",
+      "family": "azure"
+    },
+    {
+      "id": "bedrock",
+      "name": "Amazon Bedrock",
+      "kind": "api_key",
+      "family": "bedrock",
+      "base_url": "https://bedrock-runtime.${AWS_REGION}.amazonaws.com"
+    },
+    {
+      "id": "bytez",
+      "name": "Bytez",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.bytez.com/v1"
+    },
+    {
+      "id": "cerebras",
+      "name": "Cerebras",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.cerebras.ai/v1"
+    },
+    {
+      "id": "chutes",
+      "name": "Chutes",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://llm.chutes.ai/v1"
+    },
+    {
+      "id": "clarifai",
+      "name": "Clarifai",
+      "kind": "api_key",
+      "family": "clarifai",
+      "base_url": "https://api.clarifai.com/v2"
+    },
+    {
+      "id": "cloudflare",
+      "name": "Cloudflare AI Gateway",
+      "kind": "api_key",
+      "family": "cloudflare",
+      "base_url": "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai"
+    },
+    {
+      "id": "codestral",
+      "name": "Codestral (Mistral)",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://codestral.mistral.ai/v1"
+    },
+    {
+      "id": "cohere",
+      "name": "Cohere",
+      "kind": "api_key",
+      "family": "cohere",
+      "base_url": "https://api.cohere.com/v2"
+    },
+    {
+      "id": "cometapi",
+      "name": "CometAPI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.cometapi.com/v1"
+    },
+    {
+      "id": "deepinfra",
+      "name": "DeepInfra",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.deepinfra.com/v1/openai"
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.deepseek.com/v1"
+    },
+    {
+      "id": "featherless",
+      "name": "Featherless AI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.featherless.ai/v1"
+    },
+    {
+      "id": "fireworks",
+      "name": "Fireworks AI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.fireworks.ai/inference/v1"
+    },
+    {
+      "id": "friendliai",
+      "name": "FriendliAI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.friendli.ai/serverless/v1"
+    },
+    {
+      "id": "galadriel",
+      "name": "Galadriel",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.galadriel.com/v1"
+    },
+    {
+      "id": "github",
+      "name": "GitHub Copilot",
+      "kind": "api_key",
+      "family": "github",
+      "base_url": "https://api.githubcopilot.com"
+    },
+    {
+      "id": "google",
+      "name": "Google Gemini",
+      "kind": "api_key",
+      "family": "google",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta"
+    },
+    {
+      "id": "gradient",
+      "name": "GradientAI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.gradient.ai/v1"
+    },
+    {
+      "id": "groq",
+      "name": "Groq",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.groq.com/openai/v1"
+    },
+    {
+      "id": "huggingface",
+      "name": "HuggingFace Inference",
+      "kind": "api_key",
+      "family": "huggingface",
+      "base_url": "https://api-inference.huggingface.co/v1"
+    },
+    {
+      "id": "hyperbolic",
+      "name": "Hyperbolic",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.hyperbolic.xyz/v1"
+    },
+    {
+      "id": "lambda_ai",
+      "name": "Lambda AI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.lambdalabs.ai/v1"
+    },
+    {
+      "id": "litellm_bedrock",
+      "name": "AWS Bedrock (via LiteLLM)",
+      "kind": "litellm",
+      "family": "bedrock"
+    },
+    {
+      "id": "litellm_databricks",
+      "name": "Databricks (via LiteLLM)",
+      "kind": "litellm",
+      "family": "databricks"
+    },
+    {
+      "id": "litellm_openai",
+      "name": "OpenAI (via LiteLLM)",
+      "kind": "litellm",
+      "family": "openai"
+    },
+    {
+      "id": "local_file",
+      "name": "Local GGUF",
+      "kind": "local"
+    },
+    {
+      "id": "meta",
+      "name": "Meta Model API",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.meta.ai/v1"
+    },
+    {
+      "id": "minimax",
+      "name": "MiniMax",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.minimax.chat/v1"
+    },
+    {
+      "id": "mistral",
+      "name": "Mistral AI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.mistral.ai/v1"
+    },
+    {
+      "id": "moonshot",
+      "name": "Moonshot AI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.moonshot.cn/v1"
+    },
+    {
+      "id": "morph",
+      "name": "Morph",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.morph.ai/v1"
+    },
+    {
+      "id": "native",
+      "name": "Native Local",
+      "kind": "local"
+    },
+    {
+      "id": "nebius",
+      "name": "Nebius AI Studio",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.studio.nebius.ai/v1"
+    },
+    {
+      "id": "nlp_cloud",
+      "name": "NLP Cloud",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.nlpcloud.io/v1"
+    },
+    {
+      "id": "novita",
+      "name": "Novita AI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.novita.ai/v3/openai"
+    },
+    {
+      "id": "nscale",
+      "name": "Nscale (EU Sovereign)",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.nscale.com/v1"
+    },
+    {
+      "id": "nvidia",
+      "name": "NVIDIA NIM",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://integrate.api.nvidia.com/v1"
+    },
+    {
+      "id": "oci",
+      "name": "Oracle Cloud OCI",
+      "kind": "api_key",
+      "family": "oci",
+      "base_url": "https://inference.generativeai.ocp.oraclecloud.com/v1"
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama Local",
+      "kind": "local",
+      "base_url": "http://127.0.0.1:11434"
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "kind": "api_key",
+      "family": "openai",
+      "base_url": "https://api.openai.com/v1"
+    },
+    {
+      "id": "openai_codex_runtime",
+      "name": "OpenAI Codex Runtime",
+      "kind": "account_runtime",
+      "family": "openai",
+      "base_url": "https://chatgpt.com/backend-api"
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://openrouter.ai/api/v1"
+    },
+    {
+      "id": "perplexity",
+      "name": "Perplexity AI",
+      "kind": "api_key",
+      "family": "perplexity",
+      "base_url": "https://api.perplexity.ai"
+    },
+    {
+      "id": "predibase",
+      "name": "Predibase",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.predibase.com/v1"
+    },
+    {
+      "id": "publicai",
+      "name": "PublicAI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.publicai.com/v1"
+    },
+    {
+      "id": "qianfan",
+      "name": "Baidu Qianfan",
+      "kind": "api_key",
+      "family": "qianfan",
+      "base_url": "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop"
+    },
+    {
+      "id": "qwen",
+      "name": "Qwen (Alibaba Cloud)",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    },
+    {
+      "id": "replicate",
+      "name": "Replicate",
+      "kind": "api_key",
+      "family": "replicate",
+      "base_url": "https://api.replicate.com/v1"
+    },
+    {
+      "id": "sambanova",
+      "name": "SambaNova",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.sambanova.ai/v1"
+    },
+    {
+      "id": "siliconflow",
+      "name": "SiliconFlow",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.siliconflow.cn/v1"
+    },
+    {
+      "id": "together",
+      "name": "Together AI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.together.xyz/v1"
+    },
+    {
+      "id": "volcengine",
+      "name": "Volcano Engine",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.volcengine.com/v1"
+    },
+    {
+      "id": "xai",
+      "name": "Grok subscription",
+      "kind": "account_runtime",
+      "family": "xai",
+      "base_url": "https://cli-chat-proxy.grok.com/v1"
+    },
+    {
+      "id": "xiaomi",
+      "name": "Xiaomi Mimo",
+      "kind": "api_key",
+      "family": "xiaomi",
+      "base_url": "https://mimo-api.xiaomi.com/v1"
+    },
+    {
+      "id": "zhipuai",
+      "name": "Zhipu AI",
+      "kind": "api_key",
+      "family": "openai_compatible",
+      "base_url": "https://api.z.ai/api/paas/v4"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+# Optional overlay: mount only the two explicitly approved immutable local assets.
+# Use with compose.yaml after verifying checksums, UID access and architecture.
+services:
+  app:
+    volumes:
+      - type: bind
+        source: ${MEMORY_EMBEDDING_RUNTIME_PATH:?Set an approved absolute native binary path}
+        target: ${MEMORY_EMBEDDING_RUNTIME_PATH:?Set an approved absolute native binary path}
+        read_only: true
+      - type: bind
+        source: ${MEMORY_EMBEDDING_MODEL_PATH:?Set an approved absolute local GGUF path}
+        target: ${MEMORY_EMBEDDING_MODEL_PATH:?Set an approved absolute local GGUF path}
+        read_only: true

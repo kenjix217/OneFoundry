@@ -1,0 +1,36 @@
+# Separate Compose project: never add companion services to the installed app project.
+# The private env contains only the dedicated DB login and approved memory policy.
+services:
+  memory:
+    image: ${MEMORY_RUNTIME_IMAGE:?Set the verified runtime image by SHA-256 digest}
+    pull_policy: never
+    user: "10001:10001"
+    command: ["python", "-m", "onefoundry.memory_plugin_service"]
+    env_file:
+      - path: ${MEMORY_PRIVATE_ENV_FILE:?Set the owned private memory environment file}
+        required: true
+    environment:
+      MEMORY_PLUGIN_OAUTH_PUBLIC_KEY_PATH: ${MEMORY_PUBLIC_KEY_CONTAINER_PATH:?Set the approved public-key mount path}
+    volumes:
+      - type: bind
+        source: ${MEMORY_PUBLIC_KEY_HOST_PATH:?Set the owned RSA public verification key}
+        target: ${MEMORY_PUBLIC_KEY_CONTAINER_PATH:?Set the approved public-key mount path}
+        read_only: true
+        bind:
+          create_host_path: false
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 1
+    restart: unless-stopped
+    networks: [memory_database, memory_outbound]
+    # No published ports or application/credential/artifact/runner volume mounts.
+    # An approved tunnel-client shares this container's network namespace so it
+    # can reach the MCP loopback listener and make its outbound HTTPS connection.
+networks:
+  memory_database:
+    external: true
+    name: ${MEMORY_DATABASE_NETWORK:?Set the installed private PostgreSQL network}
+  memory_outbound: {}

@@ -1,0 +1,282 @@
+/* Shared, bounded workspace for Work orders, Task, and Activity. */
+.mobile-nav-toggle, .mobile-nav-backdrop, .activity-mobile-back { display: none; }
+.main-content.view-work, .main-content.view-chat, .main-content.view-activity { display: flex; flex-direction: column; overflow: hidden; }
+.view-work .content-wrap, .view-chat .content-wrap, .view-activity .content-wrap {
+  display: flex; flex-direction: column; flex: 1; min-height: 0; width: 100%; max-width: none;
+  padding: 20px clamp(18px, 2.5vw, 36px); overflow: hidden;
+}
+.view-work .view-heading, .view-activity .view-heading { flex: none; align-items: center; margin: 0 0 16px; }
+.view-work .view-heading h1, .view-activity .view-heading h1 { font-size: clamp(27px, 3vw, 36px); margin: 3px 0; }
+.view-work .view-heading p:last-child, .view-activity .view-heading p:last-child { max-width: none; }
+
+.work-area, .activity-workspace, .task-chat-page { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
+.work-area .work-layout { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 12px; }
+.work-area .work-queue-controls { flex: none; grid-template-columns: minmax(0, 1fr) minmax(210px, 300px); align-items: end; gap: 12px; }
+.work-area .work-queue-controls nav { min-width: 0; }
+.work-area .work-list { display: grid; align-content: start; flex: 1; min-height: 0; overflow-y: auto; padding: 2px 5px 12px 0; }
+.work-queue-card { grid-template-columns: minmax(170px, 1.1fr) minmax(170px, 1.4fr) auto; padding: 12px 16px; gap: 16px; }
+.work-queue-card h2 { font-size: 15px; margin: 5px 0 3px; }
+.work-queue-summary { display: grid; gap: 4px; }
+.work-queue-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.work-queue-actions .button { white-space: nowrap; }
+.work-management-drawer:not([open]) { display: none; }
+.work-management-backdrop { position: fixed; inset: 0; z-index: 80; border: 0; background: var(--theme-backdrop); }
+.work-management-drawer[open] { position: fixed; z-index: 81; inset: 0 0 0 auto; width: min(600px, 100vw); max-height: 100dvh;
+  overflow: auto; border-radius: 17px 0 0 17px; box-shadow: -15px 0 55px var(--theme-shadow); }
+.work-management-drawer > summary { display: none; }
+.work-management-close { float: right; margin-bottom: 12px; }
+
+.task-chat-page { max-width: none; }
+.task-chat-layout, .task-chat-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
+.task-chat-panel { overflow: hidden; border-radius: 15px; }
+.task-chat-panel-header { flex: none; align-items: center; padding: 13px 18px; }
+.task-chat-panel-header h1 { font-size: clamp(17px, 2vw, 23px); line-height: 1.2; margin: 3px 0 7px; }
+.task-chat-panel-header .eyebrow { display: inline; margin-right: 7px; }
+.task-chat-back { border: 0; padding: 0; margin-right: 12px; background: none; color: var(--theme-link); font-size: 11px; font-weight: 700; }
+.task-chat-owner { margin-left: 10px; }
+.task-chat-header-actions { display: flex; align-items: center; gap: 7px; flex: none; }
+.task-chat-header-actions .button { margin: 0; padding: 8px 11px; font-size: 11px; }
+.task-chat-refresh { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.task-now { flex: none; display: flex; flex-wrap: wrap; gap: 10px 24px; margin: 0; padding: 9px 18px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; font-size: 11px; }
+.task-main-tabs { flex: none; padding: 0 12px; }
+.task-main-tabs button { padding: 9px 13px; font-size: 12px; }
+.task-chat-workspace { display: grid; grid-template-columns: minmax(150px, 190px) minmax(0, 1fr) minmax(190px, 240px); flex: 1; min-height: 0; }
+.task-chat-mobile-threads { display: none; }
+.task-chat-threads, .task-chat-context { min-width: 0; overflow-y: auto; padding: 15px 12px; background: var(--theme-surface); }
+.task-chat-threads { border-right: 1px solid var(--line); }
+.task-chat-context { border-left: 1px solid var(--line); font-size: 11px; }
+.task-chat-context h2 { margin: 0 0 12px; font-size: 13px; }
+.task-chat-context > p { line-height: 1.45; color: var(--ink-muted); }
+.task-chat-context > p strong { display: block; color: var(--ink); margin-bottom: 3px; }
+.task-chat-context .button { width: 100%; margin-top: 10px; }
+.task-chat-threads-heading { margin: 0 0 10px; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; font-weight: 750; color: var(--ink-muted); }
+.task-chat-thread-bar { display: grid; gap: 6px; padding: 0; border: 0; background: transparent; }
+.task-chat-thread-bar button { width: 100%; text-align: left; overflow-wrap: anywhere; }
+.task-chat-conversation { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+.task-chat-transcript { flex: 1; min-height: 0; max-height: none; gap: 14px; padding: 18px 24px; }
+.task-chat-bubble { padding: 11px 14px; }
+.task-chat-progress { margin: 9px 0 12px; padding: 10px 12px; border-radius: 9px; background: var(--theme-raised); color: var(--ink); }
+.task-chat-progress > strong { display: block; margin-bottom: 5px; font-size: 11px; }
+.task-chat-progress ol { margin: 0; padding-left: 18px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-chat-progress li + li { margin-top: 5px; }
+.task-message-actions { display: flex; gap: 3px; justify-content: flex-end; margin-top: 5px; }
+.task-message-icon { display: grid; place-items: center; width: 25px; height: 25px; border: 0; border-radius: 6px;
+  background: transparent; color: var(--theme-muted); }
+.task-message-icon:hover { background: var(--theme-accent-soft); color: var(--theme-link); }
+.task-message-icon svg { width: 14px; height: 14px; }
+.task-chat-compose { flex: none; padding: 9px 13px 10px; }
+.task-chat-compose form { gap: 4px; }
+.task-chat-compose-control, .task-chat-compose form > .task-chat-compose-control { display: flex; align-items: center; flex-direction: row; gap: 8px; }
+.task-chat-compose-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.task-chat-attach-icon { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--theme-link); }
+.task-chat-attach-icon svg { width: 18px; height: 18px; }
+.task-chat-compose textarea { flex: 1; width: auto; min-width: 0; min-height: 42px; max-height: 145px; resize: vertical; padding: 9px 12px; }
+.task-chat-send, .task-chat-compose .task-chat-send { flex: none; width: auto; align-self: center; }
+.task-chat-compose-note { display: none; }
+.task-session-team { display: flex; flex-direction: column; gap: 6px; }
+.task-session-team button { border: 0; border-radius: 8px; padding: 9px 10px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
+.task-session-team button[aria-current="page"] { background: var(--theme-accent-soft); font-weight: 700; }
+.task-session-heading { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 18px; border-bottom: 1px solid var(--line); }
+.task-session-heading button { border: 0; background: transparent; color: var(--theme-link); cursor: pointer; }
+.task-session-heading small { margin-left: auto; color: var(--ink-muted); }
+.task-session-transcript { display: flex; flex-direction: column; overflow-y: auto; }
+.task-session-transcript .task-chat-bubble { flex: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-session-assignment { padding: 12px 14px; border-radius: 10px; background: var(--theme-accent-soft); }
+.task-session-assignment p { margin: 7px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-session-assignment small { display: block; margin-top: 4px; }
+.task-session-turn { padding: 5px 9px; color: var(--ink-muted); font-size: 11px; }
+.task-session-turn p { margin: 4px 0; }
+.task-session-action { padding: 8px 11px; border-radius: 9px; background: var(--theme-accent-soft); color: var(--ink); font-size: 11px; }
+.task-session-action details { margin-top: 5px; }
+.task-session-action pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-session-plan section { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.task-session-plan section p { margin: 6px 0; overflow-wrap: anywhere; }
+.task-session-plan section small { color: var(--ink-muted); }
+.task-session-plan .task-session-decision { padding: 9px; border: 0; border-radius: 9px; background: var(--theme-accent-soft); }
+.task-session-plan details { margin-top: 14px; }
+.task-chat-editing { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: var(--ink-muted); font-size: 11px; }
+.task-chat-editing button { border: 0; background: none; color: var(--theme-link); font-weight: 700; white-space: nowrap; }
+.task-chat-secondary { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 24px; }
+.task-team { max-width: 900px; margin: 0 auto; }
+.task-team h2 { margin: 0 0 4px; }
+.task-team-intro, .task-team-empty, .task-team-boundary { color: var(--ink-muted); line-height: 1.5; }
+.task-team-empty { padding: 12px 0; }
+.task-team-list { display: grid; gap: 12px; margin-top: 18px; }
+.task-team-card { min-width: 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.task-team-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.task-team-card-heading small { color: var(--ink-muted); font-weight: 700; }
+.task-team-card-heading h3 { margin: 4px 0; font-size: 16px; }
+.task-team-card-heading p, .task-team-instructions, .task-team-checks { margin: 7px 0; line-height: 1.5; overflow-wrap: anywhere; }
+.task-team-checks { color: var(--ink-muted); font-size: 12px; }
+.task-team-full-brief { margin: 8px 0; color: var(--ink-muted); font-size: 12px; }
+.task-team-full-brief summary { cursor: pointer; }
+.task-team-full-brief pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.5; }
+.task-team-actions, .task-team-thread-choices { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.task-team-actions .button { font-size: 11px; padding: 7px 10px; }
+.task-team-conversations { max-height: 420px; overflow-y: auto; margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--line); }
+.task-team-conversations h4 { margin: 14px 0 7px; }
+.task-team-thread-choices button { border: 0; border-radius: 6px; padding: 7px 9px; background: var(--theme-accent-soft); color: var(--ink); }
+.task-team-thread-choices button[aria-current="page"] { background: var(--accent); font-weight: 700; }
+.task-team-turn { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.task-team-turn p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.task-turn-work-log ol { padding-left: 20px; line-height: 1.6; }
+.task-turn-work-log p { color: var(--ink-muted); font-size: 11px; }
+.task-chat-brief p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-detail-actions { margin-top: 15px; }
+.app-shell:has(.task-chat-page.is-focus) { grid-template-columns: minmax(0, 1fr); }
+.app-shell:has(.task-chat-page.is-focus) .sidebar, .app-shell:has(.task-chat-page.is-focus) .topbar { display: none; }
+.task-chat-page.is-focus .task-chat-threads, .task-chat-page.is-focus .task-chat-context { display: none; }
+.task-chat-page.is-focus .task-chat-workspace { grid-template-columns: minmax(0, 1fr); }
+
+.activity-workspace .run-search { flex: none; }
+.activity-scope-actions { display: flex; gap: 8px; }
+.activity-workspace > .work-layout { display: grid; grid-template-columns: minmax(230px, 32%) minmax(0, 1fr); flex: 1; min-height: 0; align-items: stretch; gap: 12px; }
+.activity-workspace .work-list { display: grid; align-content: start; min-height: 0; overflow-y: auto; padding: 2px 4px 12px 0; }
+.activity-workspace .run-detail { min-height: 0; overflow-y: auto; padding: 20px 24px; }
+.activity-open-task { margin: 0 0 12px; }
+.activity-detail-group { margin: 10px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--theme-surface); }
+.activity-detail-group > summary { padding: 12px 14px; color: var(--theme-link); font-size: 12px; font-weight: 700; cursor: pointer; }
+.activity-detail-group[open] { padding: 0 14px 14px; }
+.activity-detail-group[open] > summary { margin: 0 -14px 12px; border-bottom: 1px solid var(--line); }
+.activity-detail-group .detail-text { margin: 0 0 12px; }
+
+@media (max-width: 1050px) {
+  .task-chat-workspace { grid-template-columns: 150px minmax(0, 1fr); }
+  .task-chat-context { display: none; }
+}
+@media (max-width: 690px) {
+  .app-shell { display: grid; grid-template-columns: minmax(0, 1fr); height: 100dvh; overflow: hidden; }
+  .sidebar { position: fixed; z-index: 92; inset: 0 auto 0 0; width: min(290px, 84vw); height: 100dvh;
+    overflow-y: auto; padding: 20px 14px; transform: translateX(-105%); transition: transform .18s ease; }
+  .mobile-menu-open .sidebar { transform: translateX(0); }
+  .mobile-nav-backdrop { display: none; position: fixed; z-index: 91; inset: 0; border: 0; background: var(--theme-backdrop); }
+  .mobile-menu-open .mobile-nav-backdrop { display: block; }
+  .mobile-nav-toggle { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+  .project-nav { display: grid; overflow: visible; }
+  .project-nav-entry, .project-link { max-width: none; }
+  .topbar { height: 54px; min-height: 54px; flex-wrap: nowrap; gap: 9px; padding: 0 13px; }
+  .breadcrumb { flex: 1; width: auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; }
+  .breadcrumb > span:first-child, .breadcrumb > span:nth-child(2), .breadcrumb > strong:first-of-type, .breadcrumb > span:nth-child(4) { display: none; }
+  .topbar-state { flex: none; width: auto; margin-left: auto; }
+  .topbar-state .local-dot { display: none; }
+  .theme-choice select { max-width: 111px; padding: 6px; font-size: 10px; }
+  .view-work .content-wrap, .view-chat .content-wrap, .view-activity .content-wrap { padding: 10px; }
+  .view-work .view-heading, .view-activity .view-heading { gap: 8px; margin: 0 0 10px; }
+  .view-work .view-heading h1, .view-activity .view-heading h1 { font-size: 23px; }
+  .view-work .view-heading p:last-child, .view-activity .view-heading p:last-child { display: none; }
+  .view-work .view-heading .button { padding: 8px 10px; font-size: 11px; }
+  .work-area .work-queue-controls { grid-template-columns: 1fr; gap: 5px; }
+  .work-area .work-queue-controls .field { display: none; }
+  .work-queue-card { grid-template-columns: 1fr; gap: 9px; }
+  .work-queue-actions { justify-content: flex-start; }
+  .task-chat-panel { border-radius: 11px; }
+  .task-chat-panel-header { display: flex; align-items: center; padding: 9px 11px; gap: 8px; }
+  .task-chat-panel-header > div:first-child { min-width: 0; }
+  .task-chat-panel-header h1 { font-size: 15px; margin: 2px 0 4px; }
+  .task-chat-panel-header .eyebrow, .task-chat-owner, .task-now { display: none; }
+  .task-chat-back { display: block; margin: 0; }
+  .task-chat-header-actions { gap: 3px; }
+  .task-chat-header-actions .button { padding: 6px 7px; font-size: 10px; }
+  .task-chat-refresh { display: none; }
+  .task-chat-workspace { display: flex; flex-direction: column; }
+  .task-chat-mobile-threads { display: block; width: 100%; padding: 6px 11px; border: 0; border-bottom: 1px solid var(--line);
+    background: var(--theme-surface); color: var(--theme-link); text-align: left; font-size: 11px; font-weight: 700; }
+  .task-chat-threads { display: none; }
+  .task-chat-threads.is-open { display: block; max-height: 180px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .task-session-team.is-open { display: flex; flex-direction: row; gap: 4px; max-height: none; overflow-x: auto; padding: 7px; }
+  .task-session-team .task-chat-threads-heading { display: none; }
+  .task-session-team button { flex: none; max-width: 180px; font-size: 11px; }
+  .task-session-plan { display: block; max-height: 140px; overflow-y: auto; border-top: 1px solid var(--line); border-left: 0; }
+  .task-session-heading { padding: 8px 11px; }
+  .task-chat-conversation { flex: 1; }
+  .task-chat-transcript { padding: 12px; }
+  .task-chat-bubble { max-width: 94%; }
+  .task-chat-compose { padding: 7px; }
+  .task-chat-compose .task-chat-send { padding: 9px; }
+  .activity-workspace > .work-layout { display: block; position: relative; overflow: hidden; }
+  .activity-workspace .work-list, .activity-workspace .run-detail { height: 100%; }
+  .activity-workspace .run-detail { display: none; }
+  .activity-workspace .work-layout.is-detail-open .work-list { display: none; }
+  .activity-workspace .work-layout.is-detail-open .run-detail { display: block; }
+  .activity-mobile-back { display: inline-flex; margin-bottom: 12px; }
+  .activity-workspace .run-search { display: flex; gap: 5px; }
+  .activity-workspace .run-search label { display: none; }
+  .activity-workspace .run-search input { min-width: 0; flex: 1; }
+  .activity-workspace .run-search .button { padding: 7px; }
+}
+
+/* Sizing preserves the mounted task/session and its pending submission state. */
+.task-chat-layout { align-items: center; justify-content: center; }
+.task-chat-layout > .task-chat-panel { flex: none; position: relative; width: var(--task-chat-width, 100%); height: var(--task-chat-height, 100%); }
+.task-chat-page.is-focus { position: fixed; inset: 0; z-index: 100; background: var(--surface); padding: 8px; height: 100dvh; }
+.task-chat-page.is-focus .task-chat-panel { width: 100%; height: 100%; }
+.task-chat-page.is-focus .task-chat-threads { display: flex; }
+.task-chat-page.is-focus .task-chat-workspace { grid-template-columns: minmax(150px, 190px) minmax(0, 1fr); }
+.task-chat-size-controls { position: relative; font-size: 11px; }
+.task-chat-size-controls > summary { cursor: pointer; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.task-chat-size-controls > div { position: absolute; top: 100%; right: 0; z-index: 4; width: 250px; padding: 16px; border: 1px solid var(--line);
+  border-radius: 10px; background: var(--surface); box-shadow: 0 8px 25px var(--theme-shadow); }
+.task-chat-size-controls label { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 12px; }
+.task-chat-size-controls input { grid-row: 2; width: 100%; }
+.task-chat-size-controls small { display: block; margin-top: 9px; }
+.task-chat-resize-handle { position: absolute; right: 0; bottom: 0; width: 24px; height: 24px; border: 0; border-radius: 7px 0 0; background: var(--surface);
+  color: var(--ink-muted); touch-action: none; cursor: nwse-resize; }
+.task-session-activity { display: flex; flex-direction: column; gap: 13px; min-width: 0; }
+.task-activity-toggle { align-self: flex-start; border: 0; background: transparent; color: var(--theme-secondary); font: inherit; font-size: 12px; cursor: pointer; padding: 5px 0; }
+.task-activity-provenance { color: var(--ink-muted); font-size: 11px; line-height: 1.5; margin: 0; }
+.task-activity-turn, .task-activity-action { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; overflow-wrap: anywhere; }
+.task-activity-turn { background: var(--theme-surface); border-left: 3px solid var(--accent); }
+.task-activity-turn h3 { margin: 0 0 7px; font-size: 14px; }
+.task-activity-action { background: var(--theme-accent-soft); }
+.task-activity-action h4, .task-activity-message h4 { margin: 5px 0; font-size: 14px; }
+.task-activity-action p, .task-activity-turn p, .task-activity-message p { margin: 6px 0; white-space: pre-wrap; font-size: 12px; line-height: 1.6; }
+.task-activity-action small, .task-activity-message small, .task-activity-meta { color: var(--ink-muted); font-size: 10px; }
+.task-activity-action.status-failed { border-left: 3px solid var(--theme-danger-text); }
+.task-activity-error { font-weight: 650; }
+.task-activity-diagnostics, .task-activity-long-text { margin-top: 8px; font-size: 11px; }
+.task-activity-diagnostics summary, .task-activity-long-text summary { cursor: pointer; color: var(--theme-link); }
+.task-activity-diagnostics pre { max-height: 300px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-activity-message { width: 100%; max-width: 100%; }
+@media (max-width: 690px) {
+  .task-chat-layout > .task-chat-panel { width: 100%; }
+  .task-chat-page.is-focus { padding: 0; }
+  .task-chat-panel-header { flex-wrap: wrap; }
+  .task-chat-header-actions { margin-left: auto; }
+  .task-chat-size-controls > div { width: min(250px, 80vw); }
+  .task-chat-resize-handle { display: none; }
+  .task-chat-page.is-focus .task-session-team { display: flex; }
+  .task-activity-action, .task-activity-turn { padding: 10px; }
+}
+.task-workflow-status { flex: none; padding: 9px 18px; max-height: 150px; overflow-y: auto; border-bottom: 1px solid var(--line); font-size: 11px; }
+.task-workflow-status h3 { font-size: 13px; margin: 0 0 5px; }
+.task-workflow-status p { margin: 4px 0; line-height: 1.4; }
+.task-session-workspace .task-chat-compose { max-height: 45%; overflow-y: auto; }
+.task-session-capture-tools { margin: 8px 0; font-size: 12px; }
+.task-session-capture-tools > summary, .task-session-assignment summary { cursor: pointer; color: var(--theme-link); }
+.task-session-assignment details { font-size: 11px; }
+@media (max-width: 690px) {
+  .task-workflow-status { max-height: 110px; padding: 7px 11px; }
+  .task-session-plan { max-height: 90px; }
+}
+.task-chat-layout > .task-chat-panel { min-height: min(680px, 100%); }
+.task-session-plan-toggle { display: none; }
+@media (max-width: 690px) {
+  .task-chat-layout > .task-chat-panel { height: 100%; }
+  .task-chat-size-controls { display: none; }
+  .task-session-plan-toggle { display: block; flex: none; padding: 7px 11px; border: 0; border-top: 1px solid var(--line); background: var(--surface);
+    color: var(--theme-link); text-align: left; font-size: 11px; }
+  .task-session-plan { display: none; }
+  .task-session-plan.is-open { display: block; }
+}
+@media (max-width: 690px) {
+  .task-session-heading small { display: none; }
+  .task-chat-compose textarea { height: 42px; min-height: 42px; }
+  .task-session-workspace .task-chat-compose > .button { margin: 0; padding: 6px 9px; font-size: 11px; }
+  .task-session-capture-tools { margin: 4px 0; font-size: 11px; }
+  .task-workflow-status { max-height: 90px; }
+}
+.task-chat-panel { container-type: inline-size; }
+@container (max-width: 1050px) {
+  .task-chat-workspace { grid-template-columns: 150px minmax(0, 1fr); }
+  .task-chat-context { display: none; }
+}

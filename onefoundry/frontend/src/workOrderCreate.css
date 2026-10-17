@@ -1,0 +1,35 @@
+/* Creating work is a focused surface; the queue keeps its full available height. */
+.work-create-dialog { width: min(760px, calc(100vw - 48px)); max-width: none; max-height: calc(100dvh - 48px); padding: 0; border: 1px solid var(--line); border-radius: 17px; background: var(--surface); color: var(--ink); box-shadow: 0 25px 90px var(--theme-shadow); overflow: hidden; }
+.work-create-dialog::backdrop { background: var(--theme-backdrop); backdrop-filter: blur(3px); }
+.work-create-dialog form { display: flex; flex-direction: column; max-height: calc(100dvh - 50px); min-height: 0; }
+.work-create-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex: none; padding: 21px 26px; border-bottom: 1px solid var(--line); }
+.work-create-dialog header .eyebrow { margin: 0 0 6px; color: var(--theme-link); }
+.work-create-dialog h2 { margin: 0; font-size: 24px; letter-spacing: -.035em; }
+.work-create-dialog header .button { font-size: 23px; padding: 0; width: 36px; height: 36px; }
+.work-create-fields { display: grid; gap: 18px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 22px 26px; }
+.work-create-dialog .field { margin: 0; gap: 8px; }
+.work-create-dialog .field-label { color: var(--ink); font-weight: 600; }
+.work-create-dialog textarea { min-height: 100px; resize: vertical; }
+.work-create-assignment { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.work-create-checks { border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; }
+.work-create-checks summary { cursor: pointer; font-size: 12px; font-weight: 600; }
+.work-create-checks summary span { margin-left: 8px; color: var(--ink-muted); font-weight: 400; }
+.work-create-checks[open] .field { margin-top: 16px; }
+.work-create-dialog .input-file-picker { margin: 0; }
+.work-create-dialog .input-file-picker input[type="file"] { margin: 0; padding: 7px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink-muted); background: var(--surface-soft); }
+.work-create-dialog input::file-selector-button { border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; margin-right: 12px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.work-create-dialog .input-file-picker small { margin-top: 8px; font-size: 11px; line-height: 1.5; }
+.work-create-dialog footer { flex: none; padding: 17px 26px; border-top: 1px solid var(--line); background: var(--surface); }
+.work-create-actions { display: flex; align-items: center; gap: 9px; }
+.work-create-actions p { flex: 1; margin: 0 18px 0 0; font-size: 11px; color: var(--ink-muted); }
+.work-create-actions .button { flex: none; min-height: 39px; }
+.work-create-dialog footer > p { margin: 0 0 12px; font-size: 12px; }
+@media (max-width: 600px) {
+  .work-create-dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); border-radius: 13px; }
+  .work-create-dialog form { max-height: calc(100dvh - 22px); }
+  .work-create-dialog header, .work-create-dialog footer { padding: 16px; }
+  .work-create-fields { padding: 18px 16px; }
+  .work-create-assignment { grid-template-columns: minmax(0, 1fr); }
+  .work-create-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .work-create-actions p { flex-basis: 100%; margin: 0 0 5px; }
+}

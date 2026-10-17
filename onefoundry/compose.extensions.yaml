@@ -1,0 +1,28 @@
+# Opt-in trusted Docker-socket supervisor. Never mount the socket in app.
+services:
+  extension-supervisor:
+    build:
+      context: .
+      dockerfile: runner/extension_supervisor_image/Dockerfile
+      args:
+        DOCKER_CLI_IMAGE: ${EXTENSION_SUPERVISOR_DOCKER_CLI_IMAGE:?Set an official Docker CLI image digest}
+    user: "10001:10001"
+    group_add:
+      - ${EXTENSION_SUPERVISOR_DOCKER_GID:?Set the host Docker socket group ID}
+    read_only: true
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 256m
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=16m
+    volumes:
+      - runner_spool:/runner-spool
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${EXTENSION_SUPERVISOR_CONFIG:?Set private supervisor config path}:/run/extension-supervisor/config.json:ro
+    command: ["--config", "/run/extension-supervisor/config.json"]
+    depends_on:
+      spool-init:
+        condition: service_completed_successfully
+    restart: unless-stopped

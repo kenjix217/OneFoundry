@@ -1,0 +1,1747 @@
+{
+  "format": 1,
+  "counts": {
+    "paperclip_skills": 53,
+    "codex_skills": 182,
+    "workflow_sources": 12,
+    "adapted_concepts": 180
+  },
+  "sources": [
+    {
+      "source_id": "codex:plugins/cache/openai-bundled/browser-use/0.1.0-alpha2/skills/browser/SKILL.md",
+      "kind": "skill",
+      "bytes": 49228,
+      "status": "adapted_concept",
+      "adapted_as": "browser test brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-bundled/browser/26.707.71524/skills/control-in-app-browser/SKILL.md",
+      "kind": "skill",
+      "bytes": 4419,
+      "status": "adapted_concept",
+      "adapted_as": "in-app browser handoff"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-bundled/chrome/26.707.71524/skills/control-chrome/SKILL.md",
+      "kind": "skill",
+      "bytes": 5537,
+      "status": "adapted_concept",
+      "adapted_as": "Chrome session review brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-bundled/deep-research/0.1.1/skills/deep-research/SKILL.md",
+      "kind": "skill",
+      "bytes": 4772,
+      "status": "adapted_concept",
+      "adapted_as": "deep research intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-bundled/sites/0.1.27/skills/sites-building/SKILL.md",
+      "kind": "skill",
+      "bytes": 14881,
+      "status": "adapted_concept",
+      "adapted_as": "site build brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-bundled/sites/0.1.27/skills/sites-hosting/SKILL.md",
+      "kind": "skill",
+      "bytes": 4294,
+      "status": "adapted_concept",
+      "adapted_as": "Sites hosting release brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-bundled/visualize/1.0.11/skills/visualize/SKILL.md",
+      "kind": "skill",
+      "bytes": 18786,
+      "status": "adapted_concept",
+      "adapted_as": "interactive visual brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/assess-patch-risk/SKILL.md",
+      "kind": "skill",
+      "bytes": 8679,
+      "status": "adapted_concept",
+      "adapted_as": "immutable patch risk brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/attack-path-analysis/SKILL.md",
+      "kind": "skill",
+      "bytes": 8567,
+      "status": "adapted_concept",
+      "adapted_as": "provisional security finding triage"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/deep-security-scan/SKILL.md",
+      "kind": "skill",
+      "bytes": 13815,
+      "status": "adapted_concept",
+      "adapted_as": "deep security scan preparation"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/define-security-policy/SKILL.md",
+      "kind": "skill",
+      "bytes": 6256,
+      "status": "adapted_concept",
+      "adapted_as": "security policy scope draft"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/finding-discovery/SKILL.md",
+      "kind": "skill",
+      "bytes": 25450,
+      "status": "adapted_concept",
+      "adapted_as": "security candidate discovery brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/fix-finding/SKILL.md",
+      "kind": "skill",
+      "bytes": 9477,
+      "status": "adapted_concept",
+      "adapted_as": "security fix brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/propose-security-hardening/SKILL.md",
+      "kind": "skill",
+      "bytes": 22791,
+      "status": "adapted_concept",
+      "adapted_as": "security hardening options"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/security-diff-scan/SKILL.md",
+      "kind": "skill",
+      "bytes": 5449,
+      "status": "adapted_concept",
+      "adapted_as": "security diff scan preparation"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/security-scan/SKILL.md",
+      "kind": "skill",
+      "bytes": 6975,
+      "status": "adapted_concept",
+      "adapted_as": "standard security scan preparation"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/threat-model/SKILL.md",
+      "kind": "skill",
+      "bytes": 3149,
+      "status": "adapted_concept",
+      "adapted_as": "provisional security finding triage"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/track-findings/SKILL.md",
+      "kind": "skill",
+      "bytes": 20543,
+      "status": "adapted_concept",
+      "adapted_as": "security finding tracking proposal"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/triage-finding/SKILL.md",
+      "kind": "skill",
+      "bytes": 27559,
+      "status": "adapted_concept",
+      "adapted_as": "provisional security finding triage"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/validation/SKILL.md",
+      "kind": "skill",
+      "bytes": 12845,
+      "status": "adapted_concept",
+      "adapted_as": "security candidate validation plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/verify-fix/SKILL.md",
+      "kind": "skill",
+      "bytes": 3025,
+      "status": "adapted_concept",
+      "adapted_as": "security fix verification checklist"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/codex-security/0.1.31/skills/vulnerability-writeup/SKILL.md",
+      "kind": "skill",
+      "bytes": 27640,
+      "status": "adapted_concept",
+      "adapted_as": "vulnerability report draft"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/analyze-data-quality/SKILL.md",
+      "kind": "skill",
+      "bytes": 13166,
+      "status": "adapted_concept",
+      "adapted_as": "supplied-data review"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/build-dashboard/SKILL.md",
+      "kind": "skill",
+      "bytes": 16232,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/build-report/SKILL.md",
+      "kind": "skill",
+      "bytes": 20227,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/convert-to-doc/SKILL.md",
+      "kind": "skill",
+      "bytes": 6924,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/convert-to-slides/SKILL.md",
+      "kind": "skill",
+      "bytes": 7461,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/create-data-context/SKILL.md",
+      "kind": "skill",
+      "bytes": 50072,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/design-kpis/SKILL.md",
+      "kind": "skill",
+      "bytes": 9478,
+      "status": "adapted_concept",
+      "adapted_as": "KPI design"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/gather-business-context/SKILL.md",
+      "kind": "skill",
+      "bytes": 8217,
+      "status": "adapted_concept",
+      "adapted_as": "context framing"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/index/SKILL.md",
+      "kind": "skill",
+      "bytes": 66898,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/jupyter-notebooks/SKILL.md",
+      "kind": "skill",
+      "bytes": 14433,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/kpi-reporting/SKILL.md",
+      "kind": "skill",
+      "bytes": 14051,
+      "status": "adapted_concept",
+      "adapted_as": "supplied KPI readout"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/market-sizing/SKILL.md",
+      "kind": "skill",
+      "bytes": 8187,
+      "status": "adapted_concept",
+      "adapted_as": "market sizing"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/metric-diagnostics/SKILL.md",
+      "kind": "skill",
+      "bytes": 11901,
+      "status": "adapted_concept",
+      "adapted_as": "supplied metric diagnosis"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/product-business-analysis/SKILL.md",
+      "kind": "skill",
+      "bytes": 11811,
+      "status": "adapted_concept",
+      "adapted_as": "business decision memo"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/publish-artifact-to-sites/SKILL.md",
+      "kind": "skill",
+      "bytes": 18649,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/report-to-pdf/SKILL.md",
+      "kind": "skill",
+      "bytes": 4833,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/schedule-refresh-jobs/SKILL.md",
+      "kind": "skill",
+      "bytes": 5902,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/share-artifact-summary/SKILL.md",
+      "kind": "skill",
+      "bytes": 6255,
+      "status": "adapted_concept",
+      "adapted_as": "supplied artifact summary"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/validate-data/SKILL.md",
+      "kind": "skill",
+      "bytes": 9782,
+      "status": "adapted_concept",
+      "adapted_as": "supplied analysis review"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/data-analytics/1.0.11/skills/visualize-data/SKILL.md",
+      "kind": "skill",
+      "bytes": 24046,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/google-drive/0.1.16/skills/google-docs/SKILL.md",
+      "kind": "skill",
+      "bytes": 28178,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/google-drive/0.1.16/skills/google-drive-comments/SKILL.md",
+      "kind": "skill",
+      "bytes": 4315,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/google-drive/0.1.16/skills/google-drive/SKILL.md",
+      "kind": "skill",
+      "bytes": 8383,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/google-drive/0.1.16/skills/google-sheets/SKILL.md",
+      "kind": "skill",
+      "bytes": 9073,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/google-drive/0.1.16/skills/google-slides/SKILL.md",
+      "kind": "skill",
+      "bytes": 15364,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/buyer-investor-list/SKILL.md",
+      "kind": "skill",
+      "bytes": 15262,
+      "status": "adapted_concept",
+      "adapted_as": "preliminary buyer universe"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/capital-markets-issuance/SKILL.md",
+      "kind": "skill",
+      "bytes": 23753,
+      "status": "adapted_concept",
+      "adapted_as": "capital market window brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/cim-builder/SKILL.md",
+      "kind": "skill",
+      "bytes": 20972,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/cim-teardown/SKILL.md",
+      "kind": "skill",
+      "bytes": 19593,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/company-tearsheet/SKILL.md",
+      "kind": "skill",
+      "bytes": 14764,
+      "status": "adapted_concept",
+      "adapted_as": "banking company baseline"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/comps-valuation/SKILL.md",
+      "kind": "skill",
+      "bytes": 11970,
+      "status": "adapted_concept",
+      "adapted_as": "banking quick comps review"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/covenant-package-analyzer/SKILL.md",
+      "kind": "skill",
+      "bytes": 18416,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/dcf-model-builder/SKILL.md",
+      "kind": "skill",
+      "bytes": 11265,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/deal-process-tracker/SKILL.md",
+      "kind": "skill",
+      "bytes": 15282,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/distressed-recovery-waterfall/SKILL.md",
+      "kind": "skill",
+      "bytes": 24038,
+      "status": "adapted_concept",
+      "adapted_as": "distressed screening note"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/financials-normalizer/SKILL.md",
+      "kind": "skill",
+      "bytes": 20389,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/ib-deck-qc/SKILL.md",
+      "kind": "skill",
+      "bytes": 19953,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/investment-banking/SKILL.md",
+      "kind": "skill",
+      "bytes": 16286,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/lbo-model-build/SKILL.md",
+      "kind": "skill",
+      "bytes": 12058,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/meeting-prep/SKILL.md",
+      "kind": "skill",
+      "bytes": 18967,
+      "status": "adapted_concept",
+      "adapted_as": "banking meeting brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/memo-builder/SKILL.md",
+      "kind": "skill",
+      "bytes": 19688,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/merger-model-builder/SKILL.md",
+      "kind": "skill",
+      "bytes": 14332,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/model-audit-tieout/SKILL.md",
+      "kind": "skill",
+      "bytes": 13901,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/pitch-deck-builder/SKILL.md",
+      "kind": "skill",
+      "bytes": 16513,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/private-credit-underwriting/SKILL.md",
+      "kind": "skill",
+      "bytes": 22032,
+      "status": "adapted_concept",
+      "adapted_as": "initial private credit screen"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/scenario-sensitivity-generator/SKILL.md",
+      "kind": "skill",
+      "bytes": 15199,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/three-statement-model-builder/SKILL.md",
+      "kind": "skill",
+      "bytes": 11910,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/investment-banking/0.1.29/skills/user-context/SKILL.md",
+      "kind": "skill",
+      "bytes": 5990,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/notion/0.1.8/skills/notion-knowledge-capture/SKILL.md",
+      "kind": "skill",
+      "bytes": 4498,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/notion/0.1.8/skills/notion-meeting-intelligence/SKILL.md",
+      "kind": "skill",
+      "bytes": 4387,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/notion/0.1.8/skills/notion-research-documentation/SKILL.md",
+      "kind": "skill",
+      "bytes": 4253,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/notion/0.1.8/skills/notion-spec-to-implementation/SKILL.md",
+      "kind": "skill",
+      "bytes": 4552,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-analytics-dashboard/SKILL.md",
+      "kind": "skill",
+      "bytes": 1497,
+      "status": "adapted_concept",
+      "adapted_as": "analytics dashboard template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-business-review/SKILL.md",
+      "kind": "skill",
+      "bytes": 1475,
+      "status": "adapted_concept",
+      "adapted_as": "business review template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-design-report/SKILL.md",
+      "kind": "skill",
+      "bytes": 1437,
+      "status": "adapted_concept",
+      "adapted_as": "design report template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-experiment-analysis/SKILL.md",
+      "kind": "skill",
+      "bytes": 1456,
+      "status": "adapted_concept",
+      "adapted_as": "experiment analysis template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-financial-budget/SKILL.md",
+      "kind": "skill",
+      "bytes": 1486,
+      "status": "adapted_concept",
+      "adapted_as": "financial budget template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-investment-committee-memo/SKILL.md",
+      "kind": "skill",
+      "bytes": 1496,
+      "status": "adapted_concept",
+      "adapted_as": "investment committee memo template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-legal-memorandum/SKILL.md",
+      "kind": "skill",
+      "bytes": 1434,
+      "status": "adapted_concept",
+      "adapted_as": "legal memorandum template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-market-trends-report/SKILL.md",
+      "kind": "skill",
+      "bytes": 1498,
+      "status": "adapted_concept",
+      "adapted_as": "market trends report template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-minimal-letterhead/SKILL.md",
+      "kind": "skill",
+      "bytes": 1470,
+      "status": "adapted_concept",
+      "adapted_as": "minimal letterhead template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-operating-calendar/SKILL.md",
+      "kind": "skill",
+      "bytes": 1500,
+      "status": "adapted_concept",
+      "adapted_as": "operating calendar template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-operating-review/SKILL.md",
+      "kind": "skill",
+      "bytes": 1483,
+      "status": "adapted_concept",
+      "adapted_as": "operating review template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-project-kickoff/SKILL.md",
+      "kind": "skill",
+      "bytes": 1463,
+      "status": "adapted_concept",
+      "adapted_as": "project kickoff template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-project-tracker/SKILL.md",
+      "kind": "skill",
+      "bytes": 1484,
+      "status": "adapted_concept",
+      "adapted_as": "project tracker template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-sales-pipeline/SKILL.md",
+      "kind": "skill",
+      "bytes": 1482,
+      "status": "adapted_concept",
+      "adapted_as": "sales pipeline template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-simple-dark-mode/SKILL.md",
+      "kind": "skill",
+      "bytes": 1478,
+      "status": "adapted_concept",
+      "adapted_as": "simple dark mode template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-simple-light-mode/SKILL.md",
+      "kind": "skill",
+      "bytes": 1487,
+      "status": "adapted_concept",
+      "adapted_as": "simple light mode template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-strategy-memorandum/SKILL.md",
+      "kind": "skill",
+      "bytes": 1446,
+      "status": "adapted_concept",
+      "adapted_as": "strategy memorandum template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-system-design/SKILL.md",
+      "kind": "skill",
+      "bytes": 1445,
+      "status": "adapted_concept",
+      "adapted_as": "system design template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-team-alignment/SKILL.md",
+      "kind": "skill",
+      "bytes": 1473,
+      "status": "adapted_concept",
+      "adapted_as": "team alignment template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-three-statement-forecast/SKILL.md",
+      "kind": "skill",
+      "bytes": 1552,
+      "status": "adapted_concept",
+      "adapted_as": "three statement forecast template intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/plugin-management/0.1.0/skills/plugin-management/SKILL.md",
+      "kind": "skill",
+      "bytes": 2983,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/catalyst-calendar/SKILL.md",
+      "kind": "skill",
+      "bytes": 11904,
+      "status": "adapted_concept",
+      "adapted_as": "public catalyst brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/company-tearsheet/SKILL.md",
+      "kind": "skill",
+      "bytes": 13200,
+      "status": "adapted_concept",
+      "adapted_as": "public issuer baseline"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/comps-valuation/SKILL.md",
+      "kind": "skill",
+      "bytes": 7810,
+      "status": "adapted_concept",
+      "adapted_as": "public peer comps screen"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/dcf-model-builder/SKILL.md",
+      "kind": "skill",
+      "bytes": 9651,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/deck-report-qc/SKILL.md",
+      "kind": "skill",
+      "bytes": 17026,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/earnings-deep-dive/SKILL.md",
+      "kind": "skill",
+      "bytes": 14349,
+      "status": "adapted_concept",
+      "adapted_as": "short post-earnings brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/earnings-preview/SKILL.md",
+      "kind": "skill",
+      "bytes": 14539,
+      "status": "adapted_concept",
+      "adapted_as": "short pre-earnings brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/economic-impact-report/SKILL.md",
+      "kind": "skill",
+      "bytes": 16771,
+      "status": "adapted_concept",
+      "adapted_as": "public equity shock brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/equity-model-update/SKILL.md",
+      "kind": "skill",
+      "bytes": 11342,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/event-driven-analyzer/SKILL.md",
+      "kind": "skill",
+      "bytes": 14411,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/financials-normalizer/SKILL.md",
+      "kind": "skill",
+      "bytes": 10538,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/idea-generation/SKILL.md",
+      "kind": "skill",
+      "bytes": 11701,
+      "status": "adapted_concept",
+      "adapted_as": "public equity idea triage"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/initiating-coverage/SKILL.md",
+      "kind": "skill",
+      "bytes": 13008,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/long-short-pitch/SKILL.md",
+      "kind": "skill",
+      "bytes": 17201,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/meeting-prep/SKILL.md",
+      "kind": "skill",
+      "bytes": 13962,
+      "status": "adapted_concept",
+      "adapted_as": "public company meeting brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/memo-builder/SKILL.md",
+      "kind": "skill",
+      "bytes": 12588,
+      "status": "adapted_concept",
+      "adapted_as": "public equity memo update"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/model-audit-tieout/SKILL.md",
+      "kind": "skill",
+      "bytes": 13722,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/portfolio-risk-management/SKILL.md",
+      "kind": "skill",
+      "bytes": 16107,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/public-equity-investing/SKILL.md",
+      "kind": "skill",
+      "bytes": 15821,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/scenario-sensitivity-generator/SKILL.md",
+      "kind": "skill",
+      "bytes": 16859,
+      "status": "adapted_concept",
+      "adapted_as": "public equity scenario screen"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/thesis-tracker/SKILL.md",
+      "kind": "skill",
+      "bytes": 14473,
+      "status": "adapted_concept",
+      "adapted_as": "public equity thesis update"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/three-statement-model-builder/SKILL.md",
+      "kind": "skill",
+      "bytes": 9343,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/public-equity-investing/0.1.31/skills/user-context/SKILL.md",
+      "kind": "skill",
+      "bytes": 6070,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/brainstorming/SKILL.md",
+      "kind": "skill",
+      "bytes": 17548,
+      "status": "adapted_concept",
+      "adapted_as": "design discovery brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/diagnosing-superpowers/SKILL.md",
+      "kind": "skill",
+      "bytes": 6904,
+      "status": "adapted_concept",
+      "adapted_as": "agent workflow incident review"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/dispatching-parallel-agents/SKILL.md",
+      "kind": "skill",
+      "bytes": 6078,
+      "status": "adapted_concept",
+      "adapted_as": "parallel work candidates"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/executing-plans/SKILL.md",
+      "kind": "skill",
+      "bytes": 20405,
+      "status": "adapted_concept",
+      "adapted_as": "plan execution ledger"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/finishing-a-development-branch/SKILL.md",
+      "kind": "skill",
+      "bytes": 7781,
+      "status": "adapted_concept",
+      "adapted_as": "branch finish review"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/receiving-code-review/SKILL.md",
+      "kind": "skill",
+      "bytes": 6203,
+      "status": "adapted_concept",
+      "adapted_as": "review feedback assessment"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/requesting-code-review/SKILL.md",
+      "kind": "skill",
+      "bytes": 2977,
+      "status": "adapted_concept",
+      "adapted_as": "code review request brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/subagent-driven-development/SKILL.md",
+      "kind": "skill",
+      "bytes": 32577,
+      "status": "adapted_concept",
+      "adapted_as": "delegated implementation plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/systematic-debugging/SKILL.md",
+      "kind": "skill",
+      "bytes": 9465,
+      "status": "adapted_concept",
+      "adapted_as": "engineering defect diagnosis"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/test-driven-development/SKILL.md",
+      "kind": "skill",
+      "bytes": 9578,
+      "status": "adapted_concept",
+      "adapted_as": "regression-first implementation plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/using-git-worktrees/SKILL.md",
+      "kind": "skill",
+      "bytes": 6813,
+      "status": "adapted_concept",
+      "adapted_as": "workspace isolation plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/using-superpowers/SKILL.md",
+      "kind": "skill",
+      "bytes": 3192,
+      "status": "adapted_concept",
+      "adapted_as": "procedure selection"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/verification-before-completion/SKILL.md",
+      "kind": "skill",
+      "bytes": 3646,
+      "status": "adapted_concept",
+      "adapted_as": "engineering defect diagnosis"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/writing-plans/SKILL.md",
+      "kind": "skill",
+      "bytes": 10335,
+      "status": "adapted_concept",
+      "adapted_as": "implementation plan draft"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated-remote/superpowers/6.4.2/skills/writing-skills/SKILL.md",
+      "kind": "skill",
+      "bytes": 26623,
+      "status": "adapted_concept",
+      "adapted_as": "procedure pressure-test plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/accessibility-and-inclusive-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 6445,
+      "status": "adapted_concept",
+      "adapted_as": "visual accessibility brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/canvas2d-data-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 9187,
+      "status": "adapted_concept",
+      "adapted_as": "Canvas2D render plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/d3-data-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 9222,
+      "status": "adapted_concept",
+      "adapted_as": "D3 and SVG render plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/dashboards-and-real-time-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 7702,
+      "status": "adapted_concept",
+      "adapted_as": "dashboard behavior plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/data-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 11132,
+      "status": "adapted_concept",
+      "adapted_as": "visualization route"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/gantt-chart-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 9414,
+      "status": "adapted_concept",
+      "adapted_as": "schedule visual plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/geospatial-and-cartographic-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 11203,
+      "status": "adapted_concept",
+      "adapted_as": "map visual plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/grammar-of-graphics-and-declarative-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 3312,
+      "status": "adapted_concept",
+      "adapted_as": "declarative chart plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/node-link-and-diagram-layout/SKILL.md",
+      "kind": "skill",
+      "bytes": 11360,
+      "status": "adapted_concept",
+      "adapted_as": "graph layout plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/react-and-nextjs-data-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 12274,
+      "status": "adapted_concept",
+      "adapted_as": "React chart integration brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/reports-pdfs-and-slide-automation/SKILL.md",
+      "kind": "skill",
+      "bytes": 8180,
+      "status": "adapted_concept",
+      "adapted_as": "report and slide figure plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/scrollytelling-and-parallax-data-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 9606,
+      "status": "adapted_concept",
+      "adapted_as": "scrollytelling scene plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/statistical-and-uncertainty-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 2074,
+      "status": "adapted_concept",
+      "adapted_as": "uncertainty chart plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/testing-data-visualizations/SKILL.md",
+      "kind": "skill",
+      "bytes": 13811,
+      "status": "adapted_concept",
+      "adapted_as": "visualization test plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/threejs-data-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 12416,
+      "status": "adapted_concept",
+      "adapted_as": "WebGL visualization brief"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/typescript-data-visualization-engineering/SKILL.md",
+      "kind": "skill",
+      "bytes": 10273,
+      "status": "adapted_concept",
+      "adapted_as": "typed visualization contract"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/uml-and-software-architecture-visualization/SKILL.md",
+      "kind": "skill",
+      "bytes": 12309,
+      "status": "adapted_concept",
+      "adapted_as": "architecture diagram plan"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/build-web-data-visualization/1dc19589/skills/visualization-strategy-and-critique/SKILL.md",
+      "kind": "skill",
+      "bytes": 20465,
+      "status": "adapted_concept",
+      "adapted_as": "chart choice and critique"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/cloudflare/1dc19589/skills/agents-sdk/SKILL.md",
+      "kind": "skill",
+      "bytes": 5581,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/cloudflare/1dc19589/skills/building-ai-agent-on-cloudflare/SKILL.md",
+      "kind": "skill",
+      "bytes": 9809,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/cloudflare/1dc19589/skills/building-mcp-server-on-cloudflare/SKILL.md",
+      "kind": "skill",
+      "bytes": 6429,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/cloudflare/1dc19589/skills/cloudflare/SKILL.md",
+      "kind": "skill",
+      "bytes": 8170,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/cloudflare/1dc19589/skills/durable-objects/SKILL.md",
+      "kind": "skill",
+      "bytes": 5867,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/cloudflare/1dc19589/skills/sandbox-sdk/SKILL.md",
+      "kind": "skill",
+      "bytes": 5771,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/cloudflare/1dc19589/skills/web-perf/SKILL.md",
+      "kind": "skill",
+      "bytes": 8166,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/cloudflare/1dc19589/skills/workers-best-practices/SKILL.md",
+      "kind": "skill",
+      "bytes": 7092,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/cloudflare/1dc19589/skills/wrangler/SKILL.md",
+      "kind": "skill",
+      "bytes": 16937,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/google-drive/1dc19589/skills/google-docs/SKILL.md",
+      "kind": "skill",
+      "bytes": 28178,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/google-drive/1dc19589/skills/google-drive-comments/SKILL.md",
+      "kind": "skill",
+      "bytes": 4315,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/google-drive/1dc19589/skills/google-drive/SKILL.md",
+      "kind": "skill",
+      "bytes": 8383,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/google-drive/1dc19589/skills/google-sheets/SKILL.md",
+      "kind": "skill",
+      "bytes": 9073,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/google-drive/1dc19589/skills/google-slides/SKILL.md",
+      "kind": "skill",
+      "bytes": 15364,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/notion/1dc19589/skills/notion-knowledge-capture/SKILL.md",
+      "kind": "skill",
+      "bytes": 4498,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/notion/1dc19589/skills/notion-meeting-intelligence/SKILL.md",
+      "kind": "skill",
+      "bytes": 4387,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/notion/1dc19589/skills/notion-research-documentation/SKILL.md",
+      "kind": "skill",
+      "bytes": 4253,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-curated/notion/1dc19589/skills/notion-spec-to-implementation/SKILL.md",
+      "kind": "skill",
+      "bytes": 4552,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-primary-runtime/documents/26.915.20218/skills/documents/SKILL.md",
+      "kind": "skill",
+      "bytes": 41685,
+      "status": "adapted_concept",
+      "adapted_as": "DOCX production intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-primary-runtime/pdf/26.915.20218/skills/pdf/SKILL.md",
+      "kind": "skill",
+      "bytes": 7918,
+      "status": "adapted_concept",
+      "adapted_as": "PDF production intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-primary-runtime/presentations/26.915.20218/skills/presentations/SKILL.md",
+      "kind": "skill",
+      "bytes": 28657,
+      "status": "adapted_concept",
+      "adapted_as": "presentation production intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-primary-runtime/spreadsheets/26.915.20218/skills/excel-live-control/SKILL.md",
+      "kind": "skill",
+      "bytes": 71620,
+      "status": "adapted_concept",
+      "adapted_as": "live Excel session intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-primary-runtime/spreadsheets/26.915.20218/skills/spreadsheets/SKILL.md",
+      "kind": "skill",
+      "bytes": 64908,
+      "status": "adapted_concept",
+      "adapted_as": "spreadsheet production intake"
+    },
+    {
+      "source_id": "codex:plugins/cache/openai-primary-runtime/template-creator/26.915.20218/skills/template-creator/SKILL.md",
+      "kind": "skill",
+      "bytes": 19036,
+      "status": "adapted_concept",
+      "adapted_as": "template library intake"
+    },
+    {
+      "source_id": "codex:skills/.system/imagegen/SKILL.md",
+      "kind": "skill",
+      "bytes": 19201,
+      "status": "adapted_concept",
+      "adapted_as": "image asset brief"
+    },
+    {
+      "source_id": "codex:skills/.system/openai-docs/SKILL.md",
+      "kind": "skill",
+      "bytes": 5437,
+      "status": "adapted_concept",
+      "adapted_as": "OpenAI documentation lookup brief"
+    },
+    {
+      "source_id": "codex:skills/.system/plugin-creator/SKILL.md",
+      "kind": "skill",
+      "bytes": 11467,
+      "status": "adapted_concept",
+      "adapted_as": "plugin package plan"
+    },
+    {
+      "source_id": "codex:skills/.system/review-agent/SKILL.md",
+      "kind": "skill",
+      "bytes": 2661,
+      "status": "adapted_concept",
+      "adapted_as": "immutable patch risk brief"
+    },
+    {
+      "source_id": "codex:skills/.system/skill-creator/SKILL.md",
+      "kind": "skill",
+      "bytes": 15311,
+      "status": "adapted_concept",
+      "adapted_as": "skill authoring"
+    },
+    {
+      "source_id": "codex:skills/.system/skill-installer/SKILL.md",
+      "kind": "skill",
+      "bytes": 3367,
+      "status": "adapted_concept",
+      "adapted_as": "skill source install review"
+    },
+    {
+      "source_id": "codex:skills/playwright/SKILL.md",
+      "kind": "skill",
+      "bytes": 3771,
+      "status": "adapted_concept",
+      "adapted_as": "browser acceptance plan"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/check-pr/SKILL.md",
+      "kind": "skill",
+      "bytes": 14599,
+      "status": "adapted_concept",
+      "adapted_as": "PR readiness evidence review"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/company-creator/SKILL.md",
+      "kind": "skill",
+      "bytes": 11849,
+      "status": "adapted_concept",
+      "adapted_as": "Company package planning"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/create-agent-adapter/SKILL.md",
+      "kind": "skill",
+      "bytes": 31960,
+      "status": "adapted_concept",
+      "adapted_as": "Coding provider adapter design"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/create-issue-interaction-ui/SKILL.md",
+      "kind": "skill",
+      "bytes": 13659,
+      "status": "adapted_concept",
+      "adapted_as": "Work-order interaction surface plan"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/create-paperclip-bundled-skill/SKILL.md",
+      "kind": "skill",
+      "bytes": 10859,
+      "status": "adapted_concept",
+      "adapted_as": "Skill Library candidate review"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/deal-with-security-advisory/SKILL.md",
+      "kind": "skill",
+      "bytes": 7910,
+      "status": "adapted_concept",
+      "adapted_as": "Private security advisory response plan"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/diagnose-why-work-stopped/SKILL.md",
+      "kind": "skill",
+      "bytes": 11404,
+      "status": "adapted_concept",
+      "adapted_as": "stalled-work diagnosis"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/doc-maintenance/SKILL.md",
+      "kind": "skill",
+      "bytes": 6636,
+      "status": "adapted_concept",
+      "adapted_as": "Documentation update plan"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/garden-inbox/SKILL.md",
+      "kind": "skill",
+      "bytes": 4408,
+      "status": "adapted_concept",
+      "adapted_as": "Operator inbox cleanup proposal"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/paperclip-create-plugin/SKILL.md",
+      "kind": "skill",
+      "bytes": 6532,
+      "status": "adapted_concept",
+      "adapted_as": "extension package plan"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/paperclip-dev-workspace-run-verify-fix/SKILL.md",
+      "kind": "skill",
+      "bytes": 21532,
+      "status": "adapted_concept",
+      "adapted_as": "Development workspace diagnosis"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/paperclip-page/SKILL.md",
+      "kind": "skill",
+      "bytes": 4185,
+      "status": "adapted_concept",
+      "adapted_as": "Page publication plan"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/pr-gardening/SKILL.md",
+      "kind": "skill",
+      "bytes": 13183,
+      "status": "adapted_concept",
+      "adapted_as": "Owned PR portfolio triage"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/pr-report/SKILL.md",
+      "kind": "skill",
+      "bytes": 5228,
+      "status": "adapted_concept",
+      "adapted_as": "contribution review"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/prcheckloop/SKILL.md",
+      "kind": "skill",
+      "bytes": 5837,
+      "status": "adapted_concept",
+      "adapted_as": "PR check-cycle diagnosis"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/prepare-paperclip-pr/SKILL.md",
+      "kind": "skill",
+      "bytes": 3825,
+      "status": "adapted_concept",
+      "adapted_as": "PR submission preparation"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/release-changelog-discord-message/SKILL.md",
+      "kind": "skill",
+      "bytes": 21754,
+      "status": "adapted_concept",
+      "adapted_as": "Channel-specific release message"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/release-changelog/SKILL.md",
+      "kind": "skill",
+      "bytes": 12071,
+      "status": "adapted_concept",
+      "adapted_as": "release changelog draft"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/release/SKILL.md",
+      "kind": "skill",
+      "bytes": 9511,
+      "status": "adapted_concept",
+      "adapted_as": "Release gate coordination plan"
+    },
+    {
+      "source_id": "paperclip:.agents/skills/terminal-bench-loop/SKILL.md",
+      "kind": "skill",
+      "bytes": 25145,
+      "status": "adapted_concept",
+      "adapted_as": "Benchmark iteration plan"
+    },
+    {
+      "source_id": "paperclip:.claude/skills/design-guide/SKILL.md",
+      "kind": "skill",
+      "bytes": 12682,
+      "status": "adapted_concept",
+      "adapted_as": "Design system fit review"
+    },
+    {
+      "source_id": "paperclip:packages/adapters/hermes/skills/paperclip-task-bridge/SKILL.md",
+      "kind": "skill",
+      "bytes": 3703,
+      "status": "adapted_concept",
+      "adapted_as": "External task bridge contract"
+    },
+    {
+      "source_id": "paperclip:packages/plugins/plugin-llm-wiki/skills/index-refresh/SKILL.md",
+      "kind": "skill",
+      "bytes": 3990,
+      "status": "adapted_concept",
+      "adapted_as": "Knowledge index reconciliation"
+    },
+    {
+      "source_id": "paperclip:packages/plugins/plugin-llm-wiki/skills/paperclip-distill/SKILL.md",
+      "kind": "skill",
+      "bytes": 11169,
+      "status": "adapted_concept",
+      "adapted_as": "Project activity distillation"
+    },
+    {
+      "source_id": "paperclip:packages/plugins/plugin-llm-wiki/skills/wiki-ingest/SKILL.md",
+      "kind": "skill",
+      "bytes": 3742,
+      "status": "adapted_concept",
+      "adapted_as": "Source knowledge ingestion proposal"
+    },
+    {
+      "source_id": "paperclip:packages/plugins/plugin-llm-wiki/skills/wiki-lint/SKILL.md",
+      "kind": "skill",
+      "bytes": 3527,
+      "status": "adapted_concept",
+      "adapted_as": "Knowledge consistency audit"
+    },
+    {
+      "source_id": "paperclip:packages/plugins/plugin-llm-wiki/skills/wiki-maintainer/SKILL.md",
+      "kind": "skill",
+      "bytes": 1019,
+      "status": "adapted_concept",
+      "adapted_as": "Knowledge maintenance routing"
+    },
+    {
+      "source_id": "paperclip:packages/plugins/plugin-llm-wiki/skills/wiki-query/SKILL.md",
+      "kind": "skill",
+      "bytes": 2734,
+      "status": "adapted_concept",
+      "adapted_as": "Cited knowledge answer"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/bundled/docs/doc-maintenance/SKILL.md",
+      "kind": "skill",
+      "bytes": 4478,
+      "status": "adapted_concept",
+      "adapted_as": "documentation drift review"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/bundled/paperclip-operations/issue-triage/SKILL.md",
+      "kind": "skill",
+      "bytes": 4042,
+      "status": "adapted_concept",
+      "adapted_as": "intake triage"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/bundled/paperclip-operations/reflection-coach/SKILL.md",
+      "kind": "skill",
+      "bytes": 12028,
+      "status": "adapted_concept",
+      "adapted_as": "profile improvement proposal"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/bundled/paperclip-operations/status-card-query/SKILL.md",
+      "kind": "skill",
+      "bytes": 6368,
+      "status": "adapted_concept",
+      "adapted_as": "Status card specification"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/bundled/paperclip-operations/summarize-status/SKILL.md",
+      "kind": "skill",
+      "bytes": 8877,
+      "status": "adapted_concept",
+      "adapted_as": "project status brief"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/bundled/paperclip-operations/task-planning/SKILL.md",
+      "kind": "skill",
+      "bytes": 4938,
+      "status": "adapted_concept",
+      "adapted_as": "work planning"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/bundled/product/paperclip-capsules/SKILL.md",
+      "kind": "skill",
+      "bytes": 5831,
+      "status": "adapted_concept",
+      "adapted_as": "Identity capsule review"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/bundled/product/wireframe/SKILL.md",
+      "kind": "skill",
+      "bytes": 11509,
+      "status": "adapted_concept",
+      "adapted_as": "Low-fidelity wireframe brief"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/bundled/quality/qa-acceptance/SKILL.md",
+      "kind": "skill",
+      "bytes": 3861,
+      "status": "adapted_concept",
+      "adapted_as": "QA acceptance"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/bundled/software-development/github-pr-workflow/SKILL.md",
+      "kind": "skill",
+      "bytes": 3970,
+      "status": "adapted_concept",
+      "adapted_as": "PR briefing draft"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/optional/browser/agent-browser/SKILL.md",
+      "kind": "skill",
+      "bytes": 5133,
+      "status": "adapted_concept",
+      "adapted_as": "Browser verification session plan"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/optional/content/release-announcement/SKILL.md",
+      "kind": "skill",
+      "bytes": 6945,
+      "status": "adapted_concept",
+      "adapted_as": "release announcement draft"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/optional/content/simplified-english/SKILL.md",
+      "kind": "skill",
+      "bytes": 1578,
+      "status": "adapted_concept",
+      "adapted_as": "clear writing"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/optional/finance/ramp/SKILL.md",
+      "kind": "skill",
+      "bytes": 7016,
+      "status": "adapted_concept",
+      "adapted_as": "Spend-tool connection gate"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/optional/product/design-critique/SKILL.md",
+      "kind": "skill",
+      "bytes": 4851,
+      "status": "adapted_concept",
+      "adapted_as": "written UX critique"
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/optional/research/last30days/catalog-ref.json",
+      "kind": "external_skill_reference",
+      "bytes": 829,
+      "status": "inventory_only",
+      "adapted_as": null
+    },
+    {
+      "source_id": "paperclip:packages/skills-catalog/catalog/optional/software-development/prepare-mcp-integration/SKILL.md",
+      "kind": "skill",
+      "bytes": 12409,
+      "status": "adapted_concept",
+      "adapted_as": "integration research brief"
+    },
+    {
+      "source_id": "paperclip:packages/teams-catalog/catalog/bundled/company-defaults/core-exec-team/TEAM.md",
+      "kind": "workflow_template",
+      "bytes": 2144,
+      "status": "adapted_concept",
+      "adapted_as": "first priority review"
+    },
+    {
+      "source_id": "paperclip:packages/teams-catalog/catalog/bundled/company-defaults/core-exec-team/projects/first-project/tasks/first-heartbeat/TASK.md",
+      "kind": "workflow_template",
+      "bytes": 292,
+      "status": "adapted_concept",
+      "adapted_as": "first priority review"
+    },
+    {
+      "source_id": "paperclip:packages/teams-catalog/catalog/bundled/product/product-design/TEAM.md",
+      "kind": "workflow_template",
+      "bytes": 2074,
+      "status": "adapted_concept",
+      "adapted_as": "design work review"
+    },
+    {
+      "source_id": "paperclip:packages/teams-catalog/catalog/bundled/product/product-design/projects/product-design/tasks/weekly-design-review/TASK.md",
+      "kind": "workflow_template",
+      "bytes": 313,
+      "status": "adapted_concept",
+      "adapted_as": "design work review"
+    },
+    {
+      "source_id": "paperclip:packages/teams-catalog/catalog/bundled/software-development/product-engineering/TEAM.md",
+      "kind": "workflow_template",
+      "bytes": 2583,
+      "status": "adapted_concept",
+      "adapted_as": "manual engineering review"
+    },
+    {
+      "source_id": "paperclip:packages/teams-catalog/catalog/bundled/software-development/product-engineering/projects/product-engineering/tasks/weekly-engineering-sync/TASK.md",
+      "kind": "workflow_template",
+      "bytes": 322,
+      "status": "adapted_concept",
+      "adapted_as": "manual engineering review"
+    },
+    {
+      "source_id": "paperclip:packages/teams-catalog/catalog/optional/content/content-machine/TEAM.md",
+      "kind": "workflow_template",
+      "bytes": 1032,
+      "status": "adapted_concept",
+      "adapted_as": "content work review"
+    },
+    {
+      "source_id": "paperclip:packages/teams-catalog/catalog/optional/content/content-machine/projects/content-operations/tasks/weekly-content-review/TASK.md",
+      "kind": "workflow_template",
+      "bytes": 236,
+      "status": "adapted_concept",
+      "adapted_as": "content work review"
+    },
+    {
+      "source_id": "paperclip:packages/teams-catalog/catalog/optional/content/content-machine/skills/content-calendar/SKILL.md",
+      "kind": "skill",
+      "bytes": 340,
+      "status": "adapted_concept",
+      "adapted_as": "content calendar draft"
+    },
+    {
+      "source_id": "paperclip:skills-releases/paperclip/v0/SKILL.md",
+      "kind": "skill",
+      "bytes": 38588,
+      "status": "adapted_concept",
+      "adapted_as": "Legacy runtime contract mapping"
+    },
+    {
+      "source_id": "paperclip:skills-releases/paperclip/v7-roster/SKILL.md",
+      "kind": "skill",
+      "bytes": 97849,
+      "status": "adapted_concept",
+      "adapted_as": "Roster-era runtime contract mapping"
+    },
+    {
+      "source_id": "paperclip:skills/agentmail/SKILL.md",
+      "kind": "skill",
+      "bytes": 3947,
+      "status": "adapted_concept",
+      "adapted_as": "Email task and delivery plan"
+    },
+    {
+      "source_id": "paperclip:skills/paperclip-board/SKILL.md",
+      "kind": "skill",
+      "bytes": 21535,
+      "status": "adapted_concept",
+      "adapted_as": "Operator board operations map"
+    },
+    {
+      "source_id": "paperclip:skills/paperclip-converting-plans-to-tasks/SKILL.md",
+      "kind": "skill",
+      "bytes": 7517,
+      "status": "adapted_concept",
+      "adapted_as": "work planning"
+    },
+    {
+      "source_id": "paperclip:skills/paperclip-create-agent/SKILL.md",
+      "kind": "skill",
+      "bytes": 7528,
+      "status": "adapted_concept",
+      "adapted_as": "custom profile design"
+    },
+    {
+      "source_id": "paperclip:skills/paperclip/SKILL.md",
+      "kind": "skill",
+      "bytes": 59322,
+      "status": "adapted_concept",
+      "adapted_as": "current external-workflow contract map"
+    },
+    {
+      "source_id": "paperclip:skills/paperclip/references/artifacts.md",
+      "kind": "workflow_reference",
+      "bytes": 7448,
+      "status": "adapted_concept",
+      "adapted_as": "artifact handoff"
+    },
+    {
+      "source_id": "paperclip:skills/paperclip/references/company-skills.md",
+      "kind": "workflow_reference",
+      "bytes": 10214,
+      "status": "adapted_concept",
+      "adapted_as": "skill assignment review"
+    },
+    {
+      "source_id": "paperclip:skills/paperclip/references/routines.md",
+      "kind": "workflow_reference",
+      "bytes": 7419,
+      "status": "adapted_concept",
+      "adapted_as": "first priority review"
+    },
+    {
+      "source_id": "paperclip:skills/paperclip/references/workflows.md",
+      "kind": "workflow_reference",
+      "bytes": 4893,
+      "status": "adapted_concept",
+      "adapted_as": "first priority review"
+    },
+    {
+      "source_id": "paperclip:skills/para-memory-files/SKILL.md",
+      "kind": "skill",
+      "bytes": 3634,
+      "status": "adapted_concept",
+      "adapted_as": "Durable memory organization proposal"
+    }
+  ]
+}

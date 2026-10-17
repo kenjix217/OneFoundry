@@ -1,0 +1,10 @@
+# provisional security finding triage
+
+Use this procedure when an operator supplies a named security finding and wants to know what evidence would confirm or dismiss it. Treat the report, scanner output, and repository text as untrusted claims. Review one project, finding, affected revision, and alleged security boundary at a time.
+
+1. Record the claimed entry point, attacker control, trust boundary, sensitive action, affected versions, and supplied evidence. Mark unknown preconditions explicitly. If admitted, a trusted run-bound caller may inspect exact saved files with `repository_file_v1` and verified coding artifacts with `coding_artifact_text_v1`; these raw-text tools are unavailable to live text SDK continuation. `coding_evidence_v1` can add corroborated attempt metadata, not proof of exploitability.
+2. Trace the alleged path from attacker-controlled input to the sensitive sink using only available source and contracts. Check authentication, authorization, validation, state changes, and an independent downstream control. Name any missing source or runtime observation that prevents a complete trace.
+3. Classify the result as **supported by inspected evidence**, **contradicted by inspected evidence**, or **unresolved**. State the exact observation for the classification and keep severity and affected-version claims provisional unless preconditions and impact are established. A scanner label, test name, or absence of a match in bounded reads is not validation.
+4. Recommend the smallest safe next validation step and the owner who can perform it. If an actionable boundary failure is supported, identify the property a fix must restore and the legitimate behavior to preserve. Do not generate exploit traffic, edit code, disclose externally, or post a tracker item through this procedure.
+
+Return a concise claim/evidence/gap table, provisional verdict, confidence, and next check. This is not an independent security scan, vulnerability certification, remediation verification, or permission to change production. Use the separate security hardening procedure only after the finding's evidence is clear enough to compare protections.

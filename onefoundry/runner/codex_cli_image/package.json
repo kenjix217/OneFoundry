@@ -1,0 +1,8 @@
+{
+  "name": "onefoundry-codex-cli-image",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "@openai/codex": "0.156.0"
+  }
+}

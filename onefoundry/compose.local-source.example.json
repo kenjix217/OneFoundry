@@ -1,0 +1,14 @@
+{
+  "x-onefoundry-local-source": {
+    "git_timeout_seconds": 3,
+    "compose_timeout_seconds": 120
+  },
+  "services": {
+    "app": {
+      "environment": {
+        "LOCAL_SOURCE_ROOT": "/source-roots/workspace"
+      },
+      "volumes": []
+    }
+  }
+}

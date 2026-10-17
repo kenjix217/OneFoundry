@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "onefoundry-sdk"
+version = "0.1.0"
+description = "Typed authoring and package inspection for OneFoundry extensions"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.10,<3", "jsonschema>=4.26,<5"]
+
+[project.scripts]
+onefoundry-sdk = "onefoundry_sdk.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/onefoundry_sdk"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 110

@@ -1,0 +1,566 @@
+services:
+  db:
+    image: postgres:16.10-alpine
+    environment:
+      POSTGRES_DB: onefoundry
+      POSTGRES_USER: onefoundry
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in onefoundry/.env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onefoundry -d onefoundry"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [input_processing]
+  migrate:
+    build:
+      context: .
+      target: runtime
+    environment: &bootstrap_env
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: onefoundry
+      DB_USER: onefoundry
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in onefoundry/.env}
+      APP_DB_USER: ${APP_DB_USER:-onefoundry_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in onefoundry/.env}
+      APP_ALLOWED_HOSTS: localhost,127.0.0.1
+      APP_PUBLIC_PORT: ${APP_PORT:-8765}
+      EXTENSION_ALLOWED_ORIGINS: '${EXTENSION_ALLOWED_ORIGINS:-[]}'
+      EXTENSION_TIMEOUT_SECONDS: '${EXTENSION_TIMEOUT_SECONDS:-10}'
+      EXTENSION_MAX_INPUT_BYTES: '${EXTENSION_MAX_INPUT_BYTES:-65536}'
+      EXTENSION_MAX_RESPONSE_BYTES: '${EXTENSION_MAX_RESPONSE_BYTES:-262144}'
+      EXTENSION_WORKER_IMAGE: '${EXTENSION_WORKER_IMAGE:-}'
+      EXTENSION_WORKER_MEMORY_MB: '${EXTENSION_WORKER_MEMORY_MB:-256}'
+      EXTENSION_WORKER_PROCESSES: '${EXTENSION_WORKER_PROCESSES:-32}'
+      EXTENSION_WORKER_CPUS: '${EXTENSION_WORKER_CPUS:-1}'
+      EXTENSION_WORKER_MAX_OUTPUT_BYTES: '${EXTENSION_WORKER_MAX_OUTPUT_BYTES:-65536}'
+      EXTENSION_WORKER_POLL_SECONDS: '${EXTENSION_WORKER_POLL_SECONDS:-0.25}'
+      EXTENSION_WORKER_HEARTBEAT_SECONDS: '${EXTENSION_WORKER_HEARTBEAT_SECONDS:-30}'
+      EXTENSION_WORKER_QUEUE_SECONDS: '${EXTENSION_WORKER_QUEUE_SECONDS:-60}'
+      EXTENSION_WEBHOOK_MAX_BYTES: '${EXTENSION_WEBHOOK_MAX_BYTES:-65536}'
+      EXTENSION_WEBHOOK_WINDOW_SECONDS: '${EXTENSION_WEBHOOK_WINDOW_SECONDS:-300}'
+      MEMORY_SEARCH_MODE: ${MEMORY_SEARCH_MODE:-lexical}
+      MEMORY_EMBEDDING_RUNTIME_PATH: ${MEMORY_EMBEDDING_RUNTIME_PATH:-}
+      MEMORY_EMBEDDING_RUNTIME_SHA256: ${MEMORY_EMBEDDING_RUNTIME_SHA256:-}
+      MEMORY_EMBEDDING_MODEL_PATH: ${MEMORY_EMBEDDING_MODEL_PATH:-}
+      MEMORY_EMBEDDING_MODEL_SHA256: ${MEMORY_EMBEDDING_MODEL_SHA256:-}
+      MEMORY_EMBEDDING_MODEL: ${MEMORY_EMBEDDING_MODEL:-}
+      MEMORY_EMBEDDING_CONTEXT_LENGTH: ${MEMORY_EMBEDDING_CONTEXT_LENGTH:-2048}
+      MEMORY_EMBEDDING_DIMENSIONS: ${MEMORY_EMBEDDING_DIMENSIONS:-0}
+      MEMORY_EMBEDDING_DOCUMENT_PREFIX: ${MEMORY_EMBEDDING_DOCUMENT_PREFIX:-}
+      MEMORY_EMBEDDING_QUERY_PREFIX: ${MEMORY_EMBEDDING_QUERY_PREFIX:-}
+      MEMORY_EMBEDDING_TIMEOUT_SECONDS: ${MEMORY_EMBEDDING_TIMEOUT_SECONDS:-5}
+      MEMORY_EMBEDDING_MAX_RESPONSE_BYTES: ${MEMORY_EMBEDDING_MAX_RESPONSE_BYTES:-1048576}
+      MEMORY_EMBEDDING_MIN_SIMILARITY: ${MEMORY_EMBEDDING_MIN_SIMILARITY:-0.5}
+      ONEFOUNDRY_BUSINESS_MODE: ${ONEFOUNDRY_BUSINESS_MODE:-off}
+      ONEFOUNDRY_MAX_LINKED_ORDERS: ${ONEFOUNDRY_MAX_LINKED_ORDERS:-2}
+      ONEFOUNDRY_MAX_MODEL_ATTEMPTS: ${ONEFOUNDRY_MAX_MODEL_ATTEMPTS:-2}
+      ONEFOUNDRY_MAX_PUBLIC_WEB_CALLS: ${ONEFOUNDRY_MAX_PUBLIC_WEB_CALLS:-0}
+      ONEFOUNDRY_MAX_CONTEXT_BYTES: ${ONEFOUNDRY_MAX_CONTEXT_BYTES:-unlimited}
+      ONEFOUNDRY_MAX_OUTPUT_TOKENS: ${ONEFOUNDRY_MAX_OUTPUT_TOKENS:-512}
+      ONEFOUNDRY_MAX_ELAPSED_SECONDS: ${ONEFOUNDRY_MAX_ELAPSED_SECONDS:-600}
+      ONEFOUNDRY_COORDINATOR_POLL_SECONDS: ${ONEFOUNDRY_COORDINATOR_POLL_SECONDS:-5}
+      ONEFOUNDRY_COORDINATOR_LEASE_SECONDS: ${ONEFOUNDRY_COORDINATOR_LEASE_SECONDS:-60}
+      ONEFOUNDRY_COORDINATOR_MAX_ATTEMPTS: ${ONEFOUNDRY_COORDINATOR_MAX_ATTEMPTS:-3}
+      ONEFOUNDRY_COORDINATOR_ACTOR_ID: ${ONEFOUNDRY_COORDINATOR_ACTOR_ID:-onefoundry-coordinator}
+      COORDINATION_MODE: ${COORDINATION_MODE:-off}
+      COORDINATION_MAX_CHAIN_DEPTH: ${COORDINATION_MAX_CHAIN_DEPTH:-10}
+      COORDINATION_MAX_ORDERS_PER_DAY: ${COORDINATION_MAX_ORDERS_PER_DAY:-50}
+      COORDINATION_TIMEZONE: ${COORDINATION_TIMEZONE:-UTC}
+      COORDINATION_MAX_AUTO_STARTS_PER_DAY: ${COORDINATION_MAX_AUTO_STARTS_PER_DAY:-20}
+      ARTIFACT_WORKSPACE_ROOT: ${ARTIFACT_WORKSPACE_ROOT:-/artifact-workspace}
+    command: ["sh", "-c", "alembic upgrade head && python -m onefoundry.db_roles"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [input_processing]
+  app:
+    build:
+      context: .
+      target: runtime
+    user: "10001:10001"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: onefoundry
+      DB_USER: ${APP_DB_USER:-onefoundry_app}
+      DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in onefoundry/.env}
+      APP_ALLOWED_HOSTS: localhost,127.0.0.1
+      APP_PUBLIC_PORT: ${APP_PORT:-8765}
+      EXTENSION_ALLOWED_ORIGINS: '${EXTENSION_ALLOWED_ORIGINS:-[]}'
+      EXTENSION_TIMEOUT_SECONDS: '${EXTENSION_TIMEOUT_SECONDS:-10}'
+      EXTENSION_MAX_INPUT_BYTES: '${EXTENSION_MAX_INPUT_BYTES:-65536}'
+      EXTENSION_MAX_RESPONSE_BYTES: '${EXTENSION_MAX_RESPONSE_BYTES:-262144}'
+      EXTENSION_WORKER_IMAGE: '${EXTENSION_WORKER_IMAGE:-}'
+      EXTENSION_WORKER_MEMORY_MB: '${EXTENSION_WORKER_MEMORY_MB:-256}'
+      EXTENSION_WORKER_PROCESSES: '${EXTENSION_WORKER_PROCESSES:-32}'
+      EXTENSION_WORKER_CPUS: '${EXTENSION_WORKER_CPUS:-1}'
+      EXTENSION_WORKER_MAX_OUTPUT_BYTES: '${EXTENSION_WORKER_MAX_OUTPUT_BYTES:-65536}'
+      EXTENSION_WORKER_POLL_SECONDS: '${EXTENSION_WORKER_POLL_SECONDS:-0.25}'
+      EXTENSION_WORKER_HEARTBEAT_SECONDS: '${EXTENSION_WORKER_HEARTBEAT_SECONDS:-30}'
+      EXTENSION_WORKER_QUEUE_SECONDS: '${EXTENSION_WORKER_QUEUE_SECONDS:-60}'
+      EXTENSION_WEBHOOK_MAX_BYTES: '${EXTENSION_WEBHOOK_MAX_BYTES:-65536}'
+      EXTENSION_WEBHOOK_WINDOW_SECONDS: '${EXTENSION_WEBHOOK_WINDOW_SECONDS:-300}'
+      MEMORY_SEARCH_MODE: ${MEMORY_SEARCH_MODE:-lexical}
+      MEMORY_EMBEDDING_RUNTIME_PATH: ${MEMORY_EMBEDDING_RUNTIME_PATH:-}
+      MEMORY_EMBEDDING_RUNTIME_SHA256: ${MEMORY_EMBEDDING_RUNTIME_SHA256:-}
+      MEMORY_EMBEDDING_MODEL_PATH: ${MEMORY_EMBEDDING_MODEL_PATH:-}
+      MEMORY_EMBEDDING_MODEL_SHA256: ${MEMORY_EMBEDDING_MODEL_SHA256:-}
+      MEMORY_EMBEDDING_MODEL: ${MEMORY_EMBEDDING_MODEL:-}
+      MEMORY_EMBEDDING_CONTEXT_LENGTH: ${MEMORY_EMBEDDING_CONTEXT_LENGTH:-2048}
+      MEMORY_EMBEDDING_DIMENSIONS: ${MEMORY_EMBEDDING_DIMENSIONS:-0}
+      MEMORY_EMBEDDING_DOCUMENT_PREFIX: ${MEMORY_EMBEDDING_DOCUMENT_PREFIX:-}
+      MEMORY_EMBEDDING_QUERY_PREFIX: ${MEMORY_EMBEDDING_QUERY_PREFIX:-}
+      MEMORY_EMBEDDING_TIMEOUT_SECONDS: ${MEMORY_EMBEDDING_TIMEOUT_SECONDS:-5}
+      MEMORY_EMBEDDING_MAX_RESPONSE_BYTES: ${MEMORY_EMBEDDING_MAX_RESPONSE_BYTES:-1048576}
+      MEMORY_EMBEDDING_MIN_SIMILARITY: ${MEMORY_EMBEDDING_MIN_SIMILARITY:-0.5}
+      ONEFOUNDRY_BUSINESS_MODE: ${ONEFOUNDRY_BUSINESS_MODE:-off}
+      ONEFOUNDRY_MAX_LINKED_ORDERS: ${ONEFOUNDRY_MAX_LINKED_ORDERS:-2}
+      ONEFOUNDRY_MAX_MODEL_ATTEMPTS: ${ONEFOUNDRY_MAX_MODEL_ATTEMPTS:-2}
+      ONEFOUNDRY_MAX_PUBLIC_WEB_CALLS: ${ONEFOUNDRY_MAX_PUBLIC_WEB_CALLS:-0}
+      ONEFOUNDRY_MAX_CONTEXT_BYTES: ${ONEFOUNDRY_MAX_CONTEXT_BYTES:-unlimited}
+      ONEFOUNDRY_MAX_OUTPUT_TOKENS: ${ONEFOUNDRY_MAX_OUTPUT_TOKENS:-512}
+      ONEFOUNDRY_MAX_ELAPSED_SECONDS: ${ONEFOUNDRY_MAX_ELAPSED_SECONDS:-600}
+      ONEFOUNDRY_COORDINATOR_POLL_SECONDS: ${ONEFOUNDRY_COORDINATOR_POLL_SECONDS:-5}
+      ONEFOUNDRY_COORDINATOR_LEASE_SECONDS: ${ONEFOUNDRY_COORDINATOR_LEASE_SECONDS:-60}
+      ONEFOUNDRY_COORDINATOR_MAX_ATTEMPTS: ${ONEFOUNDRY_COORDINATOR_MAX_ATTEMPTS:-3}
+      ONEFOUNDRY_COORDINATOR_ACTOR_ID: ${ONEFOUNDRY_COORDINATOR_ACTOR_ID:-onefoundry-coordinator}
+      COORDINATION_MODE: ${COORDINATION_MODE:-off}
+      COORDINATION_MAX_CHAIN_DEPTH: ${COORDINATION_MAX_CHAIN_DEPTH:-10}
+      COORDINATION_MAX_ORDERS_PER_DAY: ${COORDINATION_MAX_ORDERS_PER_DAY:-50}
+      COORDINATION_TIMEZONE: ${COORDINATION_TIMEZONE:-UTC}
+      COORDINATION_MAX_AUTO_STARTS_PER_DAY: ${COORDINATION_MAX_AUTO_STARTS_PER_DAY:-20}
+      MAIL_POLL_SECONDS: ${MAIL_POLL_SECONDS:-60}
+      MAIL_IDLE_ENABLED: ${MAIL_IDLE_ENABLED:-true}
+      MAIL_IDLE_WAIT_SECONDS: ${MAIL_IDLE_WAIT_SECONDS:-60}
+      MAIL_TIMEOUT_SECONDS: ${MAIL_TIMEOUT_SECONDS:-20}
+      SMTP_TIMEOUT_SECONDS: ${SMTP_TIMEOUT_SECONDS:-15}
+      MAIL_MAX_MESSAGE_BYTES: ${MAIL_MAX_MESSAGE_BYTES:-262144}
+      MAIL_MAX_FETCH_PER_POLL: ${MAIL_MAX_FETCH_PER_POLL:-20}
+      CONNECTOR_HTTP_TIMEOUT_SECONDS: ${CONNECTOR_HTTP_TIMEOUT_SECONDS:-10}
+      CONNECTOR_GOOGLE_REDIRECT_URI: ${CONNECTOR_GOOGLE_REDIRECT_URI:-}
+      ZOHO_OAUTH_PENDING_TIMEOUT_SECONDS: ${ZOHO_OAUTH_PENDING_TIMEOUT_SECONDS:-900}
+      ZOHO_OAUTH_AUTHORITY_HOSTS: '${ZOHO_OAUTH_AUTHORITY_HOSTS:-["mcp.zoho.com","accounts.zoho.com"]}'
+      DOCUMENT_POLL_SECONDS: ${DOCUMENT_POLL_SECONDS:-300}
+      DOCUMENT_MAX_BYTES: ${DOCUMENT_MAX_BYTES:-4000000}
+      DOCUMENT_MAX_FILES_PER_POLL: ${DOCUMENT_MAX_FILES_PER_POLL:-10}
+      DOCUMENT_SEARCH_MAX_PAGES: ${DOCUMENT_SEARCH_MAX_PAGES:-5}
+      DOCUMENT_SEARCH_MAX_RESULTS: ${DOCUMENT_SEARCH_MAX_RESULTS:-20}
+      DOCUMENT_MAX_RANGE_CELLS: ${DOCUMENT_MAX_RANGE_CELLS:-1000}
+      RUNNER_SPOOL_ROOT: /runner-spool
+      RUNNER_WALL_SECONDS: ${RUNNER_WALL_SECONDS:-30}
+      RUNNER_MAX_LOG_BYTES: ${RUNNER_MAX_LOG_BYTES:-65536}
+      RUNNER_MAX_DIFF_BYTES: ${RUNNER_MAX_DIFF_BYTES:-32768}
+      RUNNER_RECEIPT_WAIT_SECONDS: ${RUNNER_RECEIPT_WAIT_SECONDS:-120}
+      EXTERNAL_CODE_ENABLED: ${EXTERNAL_CODE_ENABLED-true}
+      REPOSITORY_CODE_POLICY: "${REPOSITORY_CODE_POLICY-{}}"
+      OFFLINE_SOURCE_PROBE_ENABLED: ${OFFLINE_SOURCE_PROBE_ENABLED:-false}
+      OFFLINE_SOURCE_PROBE_CAPABILITY_MAX_AGE_SECONDS: ${OFFLINE_SOURCE_PROBE_CAPABILITY_MAX_AGE_SECONDS:-30}
+      SALES_MAILPIT_HOST: mailpit
+      SALES_MAILPIT_SMTP_PORT: 1025
+      SALES_MAILPIT_HTTP_PORT: 8025
+      INFRA_SNAPSHOT_PATH: ${INFRA_SNAPSHOT_PATH:-/infra/status.json}
+      INFRA_SNAPSHOT_MAX_AGE_SECONDS: ${INFRA_SNAPSHOT_MAX_AGE_SECONDS:-20}
+      MODEL_SECRET_ROOT: /model-secrets
+      ARTIFACT_WORKSPACE_ROOT: ${ARTIFACT_WORKSPACE_ROOT:-/artifact-workspace}
+      INPUT_FILE_ROOT: ${INPUT_FILE_ROOT:-/input-files}
+      INPUT_FILE_MAX_BYTES: ${INPUT_FILE_MAX_BYTES:-26214400}
+      INPUT_FILE_MAX_PROJECT_BYTES: ${INPUT_FILE_MAX_PROJECT_BYTES:-209715200}
+      INPUT_FILE_MAX_PROJECT_COUNT: ${INPUT_FILE_MAX_PROJECT_COUNT:-30}
+      INPUT_FILE_MAX_LINK_COUNT: ${INPUT_FILE_MAX_LINK_COUNT:-8}
+      INPUT_FILE_MAX_TEXT_BYTES: ${INPUT_FILE_MAX_TEXT_BYTES:-262144}
+      INPUT_FILE_MAX_VISUAL_BYTES: ${INPUT_FILE_MAX_VISUAL_BYTES:-8388608}
+      INPUT_FILE_MAX_VISUAL_COUNT: ${INPUT_FILE_MAX_VISUAL_COUNT:-2}
+      LOCAL_SOURCE_ROOT: ${LOCAL_SOURCE_ROOT-/source-roots/workspace}
+      LOCAL_SOURCE_SCAN_MAX_ENTRIES: ${LOCAL_SOURCE_SCAN_MAX_ENTRIES:-25}
+      LOCAL_SOURCE_SCAN_SECONDS: ${LOCAL_SOURCE_SCAN_SECONDS:-10}
+      LOCAL_SOURCE_GIT_TIMEOUT_SECONDS: ${LOCAL_SOURCE_GIT_TIMEOUT_SECONDS:-3}
+      GITHUB_API_URL: https://api.github.com
+      GITHUB_TIMEOUT_SECONDS: ${GITHUB_TIMEOUT_SECONDS:-5}
+      GITHUB_MAX_RESPONSE_BYTES: ${GITHUB_MAX_RESPONSE_BYTES:-262144}
+      GITHUB_PR_READ_APPROVAL_MINUTES: ${GITHUB_PR_READ_APPROVAL_MINUTES:-15}
+      CODEX_DEVICE_TIMEOUT_SECONDS: ${CODEX_DEVICE_TIMEOUT_SECONDS:-600}
+      CODEX_AUTH_EXCHANGE_TIMEOUT_SECONDS: ${CODEX_AUTH_EXCHANGE_TIMEOUT_SECONDS:-60}
+      CODEX_CATALOG_CLIENT_VERSION: ${CODEX_CATALOG_CLIENT_VERSION:-0.160.0}
+      XAI_OAUTH_CLIENT_ID: ${XAI_OAUTH_CLIENT_ID-b1a00492-073a-47ea-816f-4c329264a828}
+      XAI_OAUTH_ISSUER: ${XAI_OAUTH_ISSUER:-https://auth.x.ai}
+      GROK_ACCOUNT_BASE_URL: ${GROK_ACCOUNT_BASE_URL:-https://cli-chat-proxy.grok.com/v1}
+      MODEL_DISCOVERY_TIMEOUT_SECONDS: ${MODEL_DISCOVERY_TIMEOUT_SECONDS:-5}
+      MODEL_DISCOVERY_MAX_PAGES: ${MODEL_DISCOVERY_MAX_PAGES:-5}
+      MODEL_DISCOVERY_MAX_RESPONSE_BYTES: ${MODEL_DISCOVERY_MAX_RESPONSE_BYTES:-1000000}
+      MODEL_DISCOVERY_MAX_MODELS: ${MODEL_DISCOVERY_MAX_MODELS:-500}
+      LIVE_TEXT_MAX_PROMPT_BYTES: ${LIVE_TEXT_MAX_PROMPT_BYTES:-32000}
+      AGENT_AUTOMATION_CONTEXT_MAX_ITEMS: ${AGENT_AUTOMATION_CONTEXT_MAX_ITEMS:-8}
+      AGENT_AUTOMATION_GOAL_MAX_CHARS: ${AGENT_AUTOMATION_GOAL_MAX_CHARS:-500}
+      SKILL_AUTO_MAX_COUNT: ${SKILL_AUTO_MAX_COUNT:-3}
+      SKILL_AUTO_MAX_CONTENT_BYTES: ${SKILL_AUTO_MAX_CONTENT_BYTES:-16000}
+      LIVE_TEXT_MAX_OUTPUT_TOKENS: ${LIVE_TEXT_MAX_OUTPUT_TOKENS:-512}
+      LIVE_TEXT_MAX_OUTPUT_BYTES: ${LIVE_TEXT_MAX_OUTPUT_BYTES:-16000}
+      LIVE_TEXT_TIMEOUT_SECONDS: ${LIVE_TEXT_TIMEOUT_SECONDS:-30}
+      TASK_CHAT_TIMEOUT_SECONDS: ${TASK_CHAT_TIMEOUT_SECONDS:-120}
+      TEAM_WORKER_ENABLED: ${TEAM_WORKER_ENABLED-true}
+      TEAM_REPOSITORY_READ_ENABLED: ${TEAM_REPOSITORY_READ_ENABLED-true}
+      MEDIA_CAPTURE_ENABLED: ${MEDIA_CAPTURE_ENABLED-true}
+      VIDEO_EDIT_ENABLED: ${VIDEO_EDIT_ENABLED-false}
+      VIDEO_EDIT_IMAGE: ${VIDEO_EDIT_IMAGE-}
+      VIDEO_EDIT_ASSET_ROOT: ${VIDEO_EDIT_ASSET_ROOT-/video-edit-assets}
+      VIDEO_EDIT_DOCKER_BINARY: ${VIDEO_EDIT_DOCKER_BINARY-/usr/bin/docker}
+      VIDEO_EDIT_DOCKER_SOCKET: ${VIDEO_EDIT_DOCKER_SOCKET-/var/run/docker.sock}
+      VIDEO_EDIT_WALL_SECONDS: ${VIDEO_EDIT_WALL_SECONDS-120}
+      VIDEO_EDIT_MEMORY_MB: ${VIDEO_EDIT_MEMORY_MB-512}
+      VIDEO_EDIT_CPUS: ${VIDEO_EDIT_CPUS-1}
+      VIDEO_EDIT_PIDS: ${VIDEO_EDIT_PIDS-64}
+      VIDEO_EDIT_MAX_SCENES: ${VIDEO_EDIT_MAX_SCENES-12}
+      VIDEO_EDIT_MAX_CAPTIONS: ${VIDEO_EDIT_MAX_CAPTIONS-64}
+      VIDEO_EDIT_MAX_JOBS_PER_ORDER: ${VIDEO_EDIT_MAX_JOBS_PER_ORDER-3}
+      VIDEO_EDIT_MAX_ATTEMPTS: ${VIDEO_EDIT_MAX_ATTEMPTS-2}
+      MEDIA_MAX_BYTES: ${MEDIA_MAX_BYTES:-33554432}
+      MEDIA_MAX_DURATION_SECONDS: ${MEDIA_MAX_DURATION_SECONDS:-120}
+      MEDIA_MAX_WIDTH: ${MEDIA_MAX_WIDTH:-1280}
+      MEDIA_MAX_HEIGHT: ${MEDIA_MAX_HEIGHT:-720}
+      MEDIA_FRAME_RATE: ${MEDIA_FRAME_RATE:-24}
+      TEAM_MAX_DELEGATION_DEPTH: ${TEAM_MAX_DELEGATION_DEPTH:-2}
+      TEAM_MAX_ASSIGNMENTS_PER_ORDER: ${TEAM_MAX_ASSIGNMENTS_PER_ORDER:-8}
+      TEAM_MAX_PLAN_REVISIONS: ${TEAM_MAX_PLAN_REVISIONS:-3}
+      TEAM_MAX_CHIEF_DECISIONS_PER_ORDER: ${TEAM_MAX_CHIEF_DECISIONS_PER_ORDER:-6}
+      TEAM_MAX_MODEL_CALLS_PER_TURN: ${TEAM_MAX_MODEL_CALLS_PER_TURN:-unlimited}
+      TEAM_TURN_TIMEOUT_SECONDS: ${TEAM_TURN_TIMEOUT_SECONDS:-300}
+      TEAM_MAX_OUTPUT_TOKENS: ${TEAM_MAX_OUTPUT_TOKENS:-4096}
+      TEAM_RETRY_DELAY_SECONDS: ${TEAM_RETRY_DELAY_SECONDS:-30}
+      LIVE_TEXT_TOOL_MAX_TURNS: ${LIVE_TEXT_TOOL_MAX_TURNS:-3}
+      ROLE_CONTEXT_MAX_ITEMS: ${ROLE_CONTEXT_MAX_ITEMS:-5}
+      PUBLIC_WEB_ENABLED: ${PUBLIC_WEB_ENABLED-true}
+      PUBLIC_WEB_SEARCH_ENDPOINT: ${PUBLIC_WEB_SEARCH_ENDPOINT:-}
+      PUBLIC_WEB_TIMEOUT_SECONDS: ${PUBLIC_WEB_TIMEOUT_SECONDS:-8}
+      PUBLIC_WEB_MAX_RESPONSE_BYTES: ${PUBLIC_WEB_MAX_RESPONSE_BYTES:-65536}
+      PUBLIC_WEB_MAX_TEXT_CHARS: ${PUBLIC_WEB_MAX_TEXT_CHARS:-4000}
+      PUBLIC_WEB_MAX_RESULTS: ${PUBLIC_WEB_MAX_RESULTS:-5}
+      BROWSER_STATIC_ENABLED: ${BROWSER_STATIC_ENABLED:-false}
+      BROWSER_STATIC_IMAGE_ID: ${BROWSER_STATIC_IMAGE_ID:-}
+      BROWSER_STATIC_CLAIM_TIMEOUT_SECONDS: ${BROWSER_STATIC_CLAIM_TIMEOUT_SECONDS:-240}
+      BROWSER_STATIC_MAX_URL_CHARS: ${BROWSER_STATIC_MAX_URL_CHARS:-2048}
+      BROWSER_STATIC_MAX_VIEWPORT_WIDTH: ${BROWSER_STATIC_MAX_VIEWPORT_WIDTH:-1920}
+      BROWSER_STATIC_MAX_VIEWPORT_HEIGHT: ${BROWSER_STATIC_MAX_VIEWPORT_HEIGHT:-1200}
+      BROWSER_STATIC_MAX_PAGE_BYTES: ${BROWSER_STATIC_MAX_PAGE_BYTES:-262144}
+      BROWSER_STATIC_MAX_FIXTURE_BYTES: ${BROWSER_STATIC_MAX_FIXTURE_BYTES:-262144}
+      BROWSER_STATIC_MAX_TIMEOUT_SECONDS: ${BROWSER_STATIC_MAX_TIMEOUT_SECONDS:-30}
+      BROWSER_STATIC_MAX_LIFETIME_SECONDS: ${BROWSER_STATIC_MAX_LIFETIME_SECONDS:-300}
+      REMOTE_CHANNEL_NETWORK_ENABLED: ${REMOTE_CHANNEL_NETWORK_ENABLED:-true}
+      REMOTE_CHANNEL_POLL_SECONDS: ${REMOTE_CHANNEL_POLL_SECONDS:-5}
+      REMOTE_IDENTITY_CHALLENGE_SECONDS: ${REMOTE_IDENTITY_CHALLENGE_SECONDS:-600}
+      DISCORD_MAX_TEXT_CHARS: ${DISCORD_MAX_TEXT_CHARS:-1900}
+      DISCORD_SEND_TIMEOUT_SECONDS: ${DISCORD_SEND_TIMEOUT_SECONDS:-15}
+      WEIXIN_API_BASE_URL: ${WEIXIN_API_BASE_URL:-https://ilinkai.weixin.qq.com}
+      WEIXIN_CHANNEL_VERSION: ${WEIXIN_CHANNEL_VERSION:-2.4.9}
+      WEIXIN_APP_CLIENT_VERSION: ${WEIXIN_APP_CLIENT_VERSION:-132105}
+      WEIXIN_BOT_AGENT: ${WEIXIN_BOT_AGENT:-OneFoundry/0.1.0}
+      WEIXIN_QR_REQUEST_TIMEOUT_SECONDS: ${WEIXIN_QR_REQUEST_TIMEOUT_SECONDS:-5}
+      WEIXIN_QR_POLL_TIMEOUT_SECONDS: ${WEIXIN_QR_POLL_TIMEOUT_SECONDS:-35}
+      WEIXIN_POLL_TIMEOUT_SECONDS: ${WEIXIN_POLL_TIMEOUT_SECONDS:-35}
+      WEIXIN_MAX_POLL_TIMEOUT_SECONDS: ${WEIXIN_MAX_POLL_TIMEOUT_SECONDS:-40}
+      WEIXIN_SEND_TIMEOUT_SECONDS: ${WEIXIN_SEND_TIMEOUT_SECONDS:-15}
+      WEIXIN_UPDATE_RETRIES: ${WEIXIN_UPDATE_RETRIES:-3}
+      WEIXIN_RETRY_BACKOFF_SECONDS: ${WEIXIN_RETRY_BACKOFF_SECONDS:-0.5}
+      WEIXIN_MAX_RESPONSE_BYTES: ${WEIXIN_MAX_RESPONSE_BYTES:-1048576}
+      WEIXIN_MAX_CURSOR_LENGTH: ${WEIXIN_MAX_CURSOR_LENGTH:-2048}
+      WEIXIN_MAX_TEXT_LENGTH: ${WEIXIN_MAX_TEXT_LENGTH:-8192}
+      LIVE_TEXT_OPENAI_BASE_URL: ${LIVE_TEXT_OPENAI_BASE_URL:-https://api.openai.com/v1}
+      LIVE_TEXT_ANTHROPIC_BASE_URL: ${LIVE_TEXT_ANTHROPIC_BASE_URL:-https://api.anthropic.com/v1}
+      LIVE_TEXT_GEMINI_BASE_URL: ${LIVE_TEXT_GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}
+      LIVE_TEXT_GROK_BASE_URL: ${LIVE_TEXT_GROK_BASE_URL:-https://api.x.ai/v1}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8765}:8000"
+    volumes:
+      - runner_spool:/runner-spool
+      - ./.infra-status:/infra:ro
+      - model_secrets:/model-secrets
+      - artifact_workspace:${ARTIFACT_WORKSPACE_ROOT:-/artifact-workspace}
+      - input_files:${INPUT_FILE_ROOT:-/input-files}
+      - video_edit_assets:${VIDEO_EDIT_ASSET_ROOT-/video-edit-assets}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      spool-init:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+      model-secret-init:
+        condition: service_completed_successfully
+      artifact-workspace-init:
+        condition: service_completed_successfully
+      input-file-init:
+        condition: service_completed_successfully
+      video-edit-asset-init:
+        condition: service_completed_successfully
+    networks: [default, input_processing]
+  onefoundry-coordinator:
+    build:
+      context: .
+      target: runtime
+    command: ["python", "-m", "onefoundry.onefoundry_coordinator"]
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 256m
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    restart: on-failure
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: onefoundry
+      DB_USER: ${APP_DB_USER:-onefoundry_app}
+      DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in onefoundry/.env}
+      ONEFOUNDRY_BUSINESS_MODE: ${ONEFOUNDRY_BUSINESS_MODE:-off}
+      ONEFOUNDRY_MAX_LINKED_ORDERS: ${ONEFOUNDRY_MAX_LINKED_ORDERS:-2}
+      ONEFOUNDRY_MAX_MODEL_ATTEMPTS: ${ONEFOUNDRY_MAX_MODEL_ATTEMPTS:-2}
+      ONEFOUNDRY_MAX_PUBLIC_WEB_CALLS: ${ONEFOUNDRY_MAX_PUBLIC_WEB_CALLS:-0}
+      ONEFOUNDRY_MAX_CONTEXT_BYTES: ${ONEFOUNDRY_MAX_CONTEXT_BYTES:-unlimited}
+      ONEFOUNDRY_MAX_OUTPUT_TOKENS: ${ONEFOUNDRY_MAX_OUTPUT_TOKENS:-512}
+      ONEFOUNDRY_MAX_ELAPSED_SECONDS: ${ONEFOUNDRY_MAX_ELAPSED_SECONDS:-600}
+      ONEFOUNDRY_COORDINATOR_POLL_SECONDS: ${ONEFOUNDRY_COORDINATOR_POLL_SECONDS:-5}
+      ONEFOUNDRY_COORDINATOR_LEASE_SECONDS: ${ONEFOUNDRY_COORDINATOR_LEASE_SECONDS:-60}
+      ONEFOUNDRY_COORDINATOR_MAX_ATTEMPTS: ${ONEFOUNDRY_COORDINATOR_MAX_ATTEMPTS:-3}
+      ONEFOUNDRY_COORDINATOR_ACTOR_ID: ${ONEFOUNDRY_COORDINATOR_ACTOR_ID:-onefoundry-coordinator}
+      COORDINATION_MODE: ${COORDINATION_MODE:-off}
+      COORDINATION_MAX_CHAIN_DEPTH: ${COORDINATION_MAX_CHAIN_DEPTH:-10}
+      COORDINATION_MAX_ORDERS_PER_DAY: ${COORDINATION_MAX_ORDERS_PER_DAY:-50}
+      COORDINATION_TIMEZONE: ${COORDINATION_TIMEZONE:-UTC}
+      COORDINATION_MAX_AUTO_STARTS_PER_DAY: ${COORDINATION_MAX_AUTO_STARTS_PER_DAY:-20}
+      LIVE_TEXT_MAX_PROMPT_BYTES: ${LIVE_TEXT_MAX_PROMPT_BYTES:-32000}
+      AGENT_AUTOMATION_CONTEXT_MAX_ITEMS: ${AGENT_AUTOMATION_CONTEXT_MAX_ITEMS:-8}
+      AGENT_AUTOMATION_GOAL_MAX_CHARS: ${AGENT_AUTOMATION_GOAL_MAX_CHARS:-500}
+      LIVE_TEXT_MAX_OUTPUT_TOKENS: ${LIVE_TEXT_MAX_OUTPUT_TOKENS:-512}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [input_processing]
+  video-edit-asset-init:
+    image: postgres:16.10-alpine
+    network_mode: none
+    environment:
+      VIDEO_EDIT_ASSET_ROOT: ${VIDEO_EDIT_ASSET_ROOT-/video-edit-assets}
+    volumes:
+      - video_edit_assets:${VIDEO_EDIT_ASSET_ROOT-/video-edit-assets}
+    command: ["sh", "-c", "chown 10001:10001 \"$$VIDEO_EDIT_ASSET_ROOT\" && chmod 0700 \"$$VIDEO_EDIT_ASSET_ROOT\""]
+  input-file-init:
+    image: postgres:16.10-alpine
+    network_mode: none
+    environment:
+      INPUT_FILE_ROOT: ${INPUT_FILE_ROOT:-/input-files}
+    volumes:
+      - input_files:${INPUT_FILE_ROOT:-/input-files}
+    command: ["sh", "-c", "chown 10001:10001 \"$$INPUT_FILE_ROOT\" && chmod 0700 \"$$INPUT_FILE_ROOT\""]
+  input-file-worker:
+    build:
+      context: .
+      target: input-worker
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 512m
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: onefoundry
+      DB_USER: ${APP_DB_USER:-onefoundry_app}
+      DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD in onefoundry/.env}
+      INPUT_FILE_ROOT: ${INPUT_FILE_ROOT:-/input-files}
+      INPUT_FILE_MAX_BYTES: ${INPUT_FILE_MAX_BYTES:-26214400}
+      INPUT_FILE_MAX_TEXT_BYTES: ${INPUT_FILE_MAX_TEXT_BYTES:-262144}
+    volumes:
+      - input_files:${INPUT_FILE_ROOT:-/input-files}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      input-file-init:
+        condition: service_completed_successfully
+    networks: [input_processing]
+  model-secret-init:
+    image: postgres:16.10-alpine
+    network_mode: none
+    volumes:
+      - model_secrets:/model-secrets
+    command: ["sh", "-c", "chown 10001:10001 /model-secrets && chmod 0700 /model-secrets"]
+  artifact-workspace-init:
+    image: postgres:16.10-alpine
+    network_mode: none
+    environment:
+      ARTIFACT_WORKSPACE_ROOT: ${ARTIFACT_WORKSPACE_ROOT:-/artifact-workspace}
+    volumes:
+      - artifact_workspace:${ARTIFACT_WORKSPACE_ROOT:-/artifact-workspace}
+    command: ["sh", "-c", "chown 10001:10001 \"$$ARTIFACT_WORKSPACE_ROOT\" && chmod 0700 \"$$ARTIFACT_WORKSPACE_ROOT\""]
+  mailpit:
+    image: axllent/mailpit:v1.27.9
+    command: ["--smtp", "0.0.0.0:1025", "--listen", "0.0.0.0:8025", "--max", "100"]
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+  ollama:
+    profiles: [local-model]
+    image: ollama/ollama:0.34.3
+    volumes:
+      - ollama_models:/root/.ollama
+  test:
+    profiles: [test]
+    build:
+      context: .
+      target: test
+    user: "10001:10001"
+    environment: *bootstrap_env
+    volumes:
+      - model_secrets:/model-secrets
+      - artifact_workspace:${ARTIFACT_WORKSPACE_ROOT:-/artifact-workspace}
+    command:
+      - sh
+      - -c
+      - alembic upgrade head && python -m onefoundry.db_roles && pytest -q tests/test_capability_setup_host_postgres.py tests/test_self_extension_postgres.py tests/test_self_extension_failure_postgres.py tests/test_repository_code_abandon_postgres.py tests/test_extension_target_resume_postgres.py tests/test_extension_replacement_postgres.py tests/test_extension_completion_postgres.py tests/test_capability_setup_postgres.py tests/test_repository_github_postgres.py tests/test_direct_agent_conversation_postgres.py tests/test_chief_conversation_trash_postgres.py tests/test_chief_workspace_postgres.py tests/test_chief_visibility_postgres.py tests/test_project_chief_inbox_postgres.py tests/test_work_order_acceptance_postgres.py tests/test_events.py tests/test_api_postgres.py tests/test_profile_hierarchy_migration_postgres.py tests/test_conversation_origin_migration_postgres.py tests/test_project_plan_migration_postgres.py tests/test_project_lifecycle_postgres.py tests/test_model_gateway_postgres.py tests/test_codex_account_postgres.py tests/test_grok_account_postgres.py tests/test_project_sources_postgres.py tests/test_github_tool_postgres.py tests/test_github_stage_proposal_postgres.py tests/test_github_stage_dispatch_postgres.py tests/test_github_fixture_fetch_v2_postgres.py tests/test_github_fixture_snapshot_v3_postgres.py tests/test_github_snapshot_codex_postgres.py tests/test_workflow_postgres.py tests/test_memory_postgres.py tests/test_memory_embeddings_postgres.py tests/test_company_memory_postgres.py tests/test_memory_capture_postgres.py tests/test_memory_plugin_db_role_postgres.py tests/test_memory_upgrade_postgres.py tests/test_text_role_postgres.py tests/test_live_text_postgres.py tests/test_onefoundry_capability_postgres.py tests/test_onefoundry_organizations_postgres.py tests/test_onefoundry_organization_api_postgres.py tests/test_onefoundry_context_postgres.py tests/test_onefoundry_budget_postgres.py tests/test_onefoundry_draft_postgres.py tests/test_onefoundry_intent_postgres.py tests/test_onefoundry_inbox_postgres.py tests/test_role_tool_admission_postgres.py tests/test_role_context_reads_postgres.py tests/test_role_coding_evidence_postgres.py tests/test_role_github_pr_postgres.py tests/test_role_web_admission_postgres.py tests/test_role_artifact_write_postgres.py tests/test_role_draft_work_order_postgres.py tests/test_role_qa_review_request_postgres.py tests/test_github_pr_comment_proposal_postgres.py tests/test_github_pr_comment_dispatch_postgres.py tests/test_github_pr_comment_api_postgres.py tests/test_role_github_pr_comment_postgres.py tests/test_browser_static_fixtures_postgres.py tests/test_browser_static_jobs_postgres.py tests/test_browser_static_api_postgres.py tests/test_role_browser_static_inspect_postgres.py tests/test_task_conversation_postgres.py tests/test_task_session_postgres.py tests/test_team_workflow_postgres.py tests/test_task_session_start_postgres.py tests/test_dependency_availability_postgres.py tests/test_team_repository_read_postgres.py tests/test_child_rework_postgres.py tests/test_media_capture_postgres.py tests/test_video_edit_postgres.py -m "not integration" tests/test_input_files_postgres.py tests/test_remote_channels_postgres.py tests/test_skill_library_postgres.py tests/test_coordination_postgres.py tests/test_coordination_triage_postgres.py tests/test_mail_postgres.py tests/test_mail_plugin_postgres.py tests/test_coordination_autostart_postgres.py tests/test_coordination_profiles_postgres.py tests/test_connectors_postgres.py tests/test_synthetic_code_postgres.py tests/test_external_code_postgres.py tests/test_sales_postgres.py tests/test_synthetic_memory_postgres.py tests/test_documents_postgres.py tests/test_document_writes_postgres.py tests/test_document_actions_postgres.py tests/test_smtp_postgres.py tests/test_zoho_mail_postgres.py tests/test_zoho_oauth_postgres.py tests/test_gateway_extension_lifecycle_postgres.py tests/test_gateway_extension_identity_postgres.py tests/test_gateway_extension_remote_postgres.py tests/test_gateway_extension_worker_postgres.py tests/test_extension_webhooks_postgres.py tests/test_gateway_extension_writes_postgres.py tests/test_gateway_extension_binding_aba_postgres.py tests/test_gateway_extension_portability_postgres.py
+    depends_on:
+      db:
+        condition: service_healthy
+      model-secret-init:
+        condition: service_completed_successfully
+      artifact-workspace-init:
+        condition: service_completed_successfully
+    networks: [input_processing]
+  spool-init:
+    build:
+      context: .
+      target: runner
+    network_mode: none
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - runner_spool:/runner-spool
+    command:
+      - python
+      - -c
+      - >-
+        from pathlib import Path;
+        root = Path('/runner-spool');
+        [ (root / name).mkdir(exist_ok=True) for name in
+        ('jobs', 'claims', 'receipts', 'artifacts', 'repos',
+        'external', 'external/jobs', 'external/claims',
+        'external/receipts', 'external/artifacts') ];
+        (root / 'browser-static').mkdir(mode=0o700, exist_ok=True)
+  runner:
+    build:
+      context: .
+      target: runner
+    network_mode: none
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    volumes:
+      - runner_spool:/runner-spool
+    depends_on:
+      spool-init:
+        condition: service_completed_successfully
+  external-runner:
+    build:
+      context: .
+      target: runner
+    network_mode: none
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    volumes:
+      - runner_spool:/runner-spool
+    command: ["python", "-m", "runner.external_service"]
+    depends_on:
+      spool-init:
+        condition: service_completed_successfully
+  github-stage-spool-init:
+    profiles: [offline-github-stage]
+    build:
+      context: .
+      target: runner
+    network_mode: none
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - runner_spool:/runner-spool
+    command:
+      - python
+      - -c
+      - >-
+        from pathlib import Path;
+        root = Path('/runner-spool/github-stage');
+        [ (root / name).mkdir(parents=True, exist_ok=True) for name in
+        ('jobs', 'claims', 'receipts', 'artifacts') ]
+    depends_on:
+      spool-init:
+        condition: service_completed_successfully
+  github-stage-offline:
+    profiles: [offline-github-stage]
+    build:
+      context: .
+      target: github-stage-runner
+    network_mode: none
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 32
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    volumes:
+      - runner_spool:/runner-spool
+      - ./.offline-github-stage/remote.git:/fixture/remote.git:ro
+    command:
+      - python
+      - -m
+      - runner.github_stage_supervisor
+      - --spool
+      - /runner-spool/github-stage
+      - --fixture-remote
+      - /fixture/remote.git
+      - --fixture-owner
+      - ${GITHUB_STAGE_FIXTURE_OWNER:-sample}
+      - --fixture-repo
+      - ${GITHUB_STAGE_FIXTURE_REPO:-project}
+      - --max-files
+      - ${GITHUB_STAGE_MAX_FILES:-1000}
+      - --max-bytes
+      - ${GITHUB_STAGE_MAX_BYTES:-8388608}
+      - --max-tree-bytes
+      - ${GITHUB_STAGE_MAX_TREE_BYTES:-1048576}
+      - --wall-seconds
+      - ${GITHUB_STAGE_WALL_SECONDS:-30}
+      - --max-git-bytes
+      - ${GITHUB_STAGE_MAX_GIT_BYTES:-16777216}
+    depends_on:
+      github-stage-spool-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
+  runner_spool:
+  ollama_models:
+  model_secrets:
+  artifact_workspace:
+  input_files:
+  video_edit_assets:
+
+networks:
+  input_processing:
+    internal: true

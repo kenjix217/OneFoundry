@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "zoho-mail-read",
+  "version": "0.1.0",
+  "description": "Search and read an operator-approved Zoho mailbox through OneFoundry's bounded read-only MCP service.",
+  "author": {"name": "OneFoundry operator"},
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Zoho Mail Read",
+        "shortDescription": "Read-only Zoho mail",
+        "longDescription": "Search approved folders and read capped message text. No sending, deletion, moving, flag changes, or attachment tools. A verified remote MCP endpoint and OAuth connection are required.",
+        "developerName": "OneFoundry operator",
+        "category": "Productivity",
+        "defaultPrompt": "Search my approved mailbox for relevant sales conversations and read the messages needed for research."
+      }
+    }
+  }
+}

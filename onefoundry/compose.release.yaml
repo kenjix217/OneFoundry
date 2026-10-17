@@ -1,0 +1,16 @@
+# Prebuilt release images. Always pass --no-build --pull never with this file.
+services:
+  migrate:
+    image: ${ONEFOUNDRY_RUNTIME_IMAGE:?Set release runtime image}
+  app:
+    image: ${ONEFOUNDRY_RUNTIME_IMAGE:?Set release runtime image}
+  onefoundry-coordinator:
+    image: ${ONEFOUNDRY_RUNTIME_IMAGE:?Set release runtime image}
+  input-file-worker:
+    image: ${ONEFOUNDRY_INPUT_WORKER_IMAGE:?Set release input worker image}
+  spool-init:
+    image: ${ONEFOUNDRY_RUNNER_IMAGE:?Set release runner image}
+  runner:
+    image: ${ONEFOUNDRY_RUNNER_IMAGE:?Set release runner image}
+  external-runner:
+    image: ${ONEFOUNDRY_RUNNER_IMAGE:?Set release runner image}

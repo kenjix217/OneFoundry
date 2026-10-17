@@ -1,0 +1,13 @@
+# Opt-in host CLI worker. Prepare EXTERNAL_CODE_HOST_SPOOL before using this override.
+services:
+  app:
+    group_add:
+      - ${EXTERNAL_CODE_SHARED_GID:?Set EXTERNAL_CODE_SHARED_GID to the operator group ID}
+    environment:
+      EXTERNAL_CODE_ENABLED: "true"
+    volumes:
+      - type: bind
+        source: ${EXTERNAL_CODE_HOST_SPOOL:?Set EXTERNAL_CODE_HOST_SPOOL}
+        target: /runner-spool/external
+  external-runner:
+    profiles: [legacy-external-observer]

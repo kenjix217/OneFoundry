@@ -1,0 +1,14 @@
+.zoho-mail .zoho-connection {
+  margin-block: 18px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.zoho-mail .zoho-connection h3 { margin-top: 0; }
+.zoho-mail .button-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.zoho-mail .skill-create { max-width: 720px; }
+.zoho-mail .skill-create h3 { margin-top: 0; }
+@media (max-width: 600px) {
+  .zoho-mail .button-row { flex-direction: column; align-items: stretch; }
+}

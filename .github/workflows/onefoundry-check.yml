@@ -1,0 +1,45 @@
+name: OneFoundry check
+
+on:
+  push:
+    paths:
+      - "onefoundry/**"
+      - ".githooks/**"
+      - ".gitignore"
+      - ".github/workflows/onefoundry-check.yml"
+  pull_request:
+    paths:
+      - "onefoundry/**"
+      - ".githooks/**"
+      - ".gitignore"
+      - ".github/workflows/onefoundry-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Install pinned Gitleaks
+        run: python3 onefoundry/scripts/install_gitleaks.py .git/tools/gitleaks
+      - name: Check Git history and runtime paths
+        run: |
+          status=0
+          python3 onefoundry/scripts/git_hygiene.py --history || status=1
+          .git/tools/gitleaks git --no-banner --no-color --redact --log-level=error --log-opts='--all' . || status=1
+          exit "$status"
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.19"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: onefoundry/frontend/package-lock.json
+      - name: Python, PostgreSQL, and frontend checks
+        working-directory: onefoundry
+        run: make check
