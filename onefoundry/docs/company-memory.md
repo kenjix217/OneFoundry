@@ -6,6 +6,25 @@ Captured transcripts live separately in `memory_captures`; they are source
 archives, never automatically published facts. This service does not discover
 private chats, hidden host memory, assistant instructions, or mail.
 
+## Knowledge from coding sessions
+
+The OneFoundry Company Memory plugin lets a connected Codex workspace retrieve
+approved context before coding and, when explicitly requested and granted,
+propose selected knowledge for retention. Useful material includes architecture
+decisions, repository constraints, build/test steps, and lessons from a repair.
+Internal role agents retrieve the same approved store. Project scope keeps facts
+in their source project; company scope intentionally shares them across projects.
+
+For example: “Propose saving this architecture decision and these build/test
+steps to this project's OneFoundry memory.” The client previews the exact selected
+excerpt, factual summary, source, and scope, then waits for confirmation before
+submission. The local operator reviews the pending candidate before it enters
+approved retrieval. Capture access is optional and off by default; read access
+does not grant it. Capture does not automatically collect all coding activity or
+synchronize entire codebases.
+The developer's plugin connection is separate from the isolated coding worker;
+connecting it does not grant that worker memory access.
+
 ## Operator flow
 
 Select a project → Memory → Capture conversation. Enter a source reference,

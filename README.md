@@ -4,17 +4,19 @@
 
 **Your company. Your AI team. Your tools.**
 
-A local workspace for AI specialists that share context, build reusable skills, and bring work back for your review.
+A local AI team with cloud or locally hosted models, external coding clients, and company memory that carries forward.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Source: 0.20.0](https://img.shields.io/badge/Source-0.20.0-7465d8)](onefoundry/CHANGELOG.md)
-[![GitHub stars](https://img.shields.io/github/stars/kenjix217/OneFoundry?style=flat&label=Star%20OneFoundry)](https://github.com/kenjix217/OneFoundry/stargazers)
+[![Star OneFoundry](https://img.shields.io/badge/GitHub-Star%20OneFoundry-181717?logo=github&logoColor=white)](https://github.com/kenjix217/OneFoundry/stargazers)
 
-[Quick start](#quick-start) · [Capabilities](#what-you-can-build) · [Python SDK](#build-your-first-extension) · [Architecture](#how-it-works) · [Contribute](CONTRIBUTING.md)
+[Quick start](#quick-start) · [Cloud & local models](#cloud-apis-and-local-models) · [Coding clients](#coding-with-codex-and-claude-code) · [Company memory](#company-memory-across-coding-sessions) · [Python SDK](#build-your-first-extension) · [Architecture](#how-it-works) · [Contribute](CONTRIBUTING.md)
 
 </div>
 
 Give **Chief** an objective. Let **Researcher**, **Engineer**, **QA**, **GTM**, and **Sales** work from the same project context. Inspect their assignments, conversations, files, and results. Review useful knowledge into company memory so the next task starts with context.
+
+**Keep your coding client and your company context together.** Delegate implementation to separate **Codex CLI** or **Claude Code** workers through the Execution Gateway. You can also work directly in Codex and connect the **OneFoundry Company Memory plugin** to retrieve approved knowledge and propose selected project knowledge for retention when you ask.
 
 Make the team your own: choose models, instructions, tools, memory scope, and procedures per profile, or add a custom specialist. Extend its capabilities with Python tools, API connections, MCP servers, webhooks, and versioned `SKILL.md` procedures through one Tool Gateway.
 
@@ -52,15 +54,45 @@ You can also choose **Continue without AI or a repository** and [record manual w
 | Capability | Put it to work |
 | --- | --- |
 | **A team for your company** | Chief coordinates specialist assignments and handoffs. Each profile has its own model, instructions, memory scope, tools, and autonomy setting. Talk to a specialist directly or follow its delegated conversation. |
-| **Company memory that carries forward** | Review proposed facts into project or company scope. Later tasks retrieve approved knowledge with source references. Optional local embeddings and an authenticated company-memory MCP service extend the same library. |
+| **Cloud APIs or local models** | Connect supported OpenAI, Anthropic, Gemini, xAI/Grok, and compatible cloud API providers, or host models locally with Ollama. Discover available models and choose an account/model per role. |
+| **Company memory across coding sessions** | Connect Codex to the Company Memory plugin to retrieve approved facts and propose explicitly selected knowledge for review. Internal roles use the same project/company memory with source references. |
 | **Tools that fit your work** | Package typed Python functions, declarative API operations, MCP capabilities, resources, and procedures with the Python SDK. Keep reusable package definitions separate from each project's credentials and configuration. |
 | **Skills made by you or your agents** | Write procedures in Tool Foundry or let an admitted agent propose a draft. Review exact instructions and required tools before accepting an immutable version. Pin versions to profiles. |
 | **Connected APIs and MCP servers** | Save shared project connections, bind declared package slots, and configure them from a plugin, tool, or skill. Readiness shows configuration, credentials, live checks, and successful use separately. |
 | **Event-driven work** | Receive signed, deduplicated webhooks through the existing automation pipeline. Prepare work from mail, watched files, or rules. Outbound webhooks and generic API/MCP calls keep exact-call approval and saved outcomes. |
-| **Coding with independent verification** | The Execution Gateway records coding attempts in separate workers. The scoped maintenance path uses an isolated Codex candidate, independent QA, and operator-reviewed activation. Codex/Claude trusted-host fixtures have a separate setup and isolation contract. |
+| **External coding agents and independent QA** | Delegate scoped Engineer/QA assignments and dispatch coding through separate Codex CLI or Claude Code workers. Keep exact attempts, diffs, tests, results, and approval records in OneFoundry. See the [supported coding paths](#coding-with-codex-and-claude-code). |
 | **Research, drafts, and deliverables** | Work with input documents, approved memory, registered repositories, and granted public-web tools. Keep artifacts with their tasks. Optional document, mail, browser, and video workers add supported workflows. |
 
 Try an objective such as **“Turn these product notes and customer findings into a launch brief and an outreach draft.”** Chief can assign Researcher, GTM, and Sales, retain their results, and bring the outward decision back to you.
+
+## Cloud APIs and local models
+
+Choose the model connection that fits each role:
+
+| Connection | How it fits |
+| --- | --- |
+| **Cloud model APIs** | OpenAI, Anthropic, Google Gemini, xAI/Grok, and connectable OpenAI-compatible providers in the bundled directory. Credentials stay in protected local storage. |
+| **Locally hosted models** | Use the optional Compose Ollama service, or a reachable loopback Ollama endpoint when running OneFoundry on the host. Install a model there, discover its catalog, and assign it to a role. |
+| **A mixed team** | Bind each profile to its own configured account/model. For example, use a local model for one role and a supported cloud provider for another. |
+
+Configure these under **Settings → AI connections**, then choose models in **Team**. Available models and tool support depend on the provider and selected runtime. A local OneFoundry installation can still make cloud requests when you choose cloud models or external services. See [model connection setup](onefoundry/README.md#model-account-configuration).
+
+## Coding with Codex and Claude Code
+
+OneFoundry coordinates the objective, Engineer and QA assignments, dependencies, approvals, and saved evidence. The **external coding client** performs file edits and commands and owns its coding loop. The Execution Gateway and separate runner connect those attempts back to the work order.
+
+Chief can delegate scoped coding and review assignments. Provider-native coding subagents remain under the chosen client's controls and the runner's permissions; their deployment is not separately qualified in this release. The current isolated maintenance path uses Codex with independent QA and reviewed activation. The separate Codex/Claude trusted-host path has live evidence on a fixed disposable repository. These paths need their own configuration; they do not establish unrestricted coding or deployment for arbitrary repositories. Read the [coding setup](onefoundry/README.md#delegated-coding) and [maintenance runtime](onefoundry/docs/SELF_EXTENSION_RUNTIME.md).
+
+## Company memory across coding sessions
+
+Work directly in Codex and connect the **OneFoundry Company Memory plugin**, or use OneFoundry's internal roles against the same reviewed memory store. Retain architecture decisions, repository context, build/test procedures, and useful lessons with their sources so later sessions can retrieve them.
+
+1. **Retrieve before coding.** Search and read approved facts relevant to the selected project.
+2. **Ask to retain a decision.** Select the company-related excerpt and a factual summary, such as: “Propose saving this architecture decision and these build/test steps to this project's OneFoundry memory.”
+3. **Confirm the selection.** With capture access enabled, Codex previews the exact excerpt, summary, source, scope, and retention notice. Your confirmation archives the selected excerpt and submits a pending proposal; the source stays archived even if the candidate is rejected.
+4. **Review in OneFoundry.** Approve the candidate in **Memory → Browse & review**. Approved facts become available to later authorized sessions and role agents.
+
+Use **project scope** for repository-specific knowledge and **company scope** for knowledge intentionally shared across projects. Capture is off by default, bounded, and explicitly requested; connecting the plugin does not automatically archive conversations or synchronize entire codebases. Search/read access alone cannot save or approve a fact. Plugin installation also needs a configured, authenticated memory service and grants. See the [plugin source](onefoundry/plugins/onefoundry-company-memory/README.md), [connection setup](onefoundry/docs/company-memory.md#private-companion-deployment), and [selective capture flow](onefoundry/docs/company-memory.md#selective-api-key-capture-optional).
 
 ## One place for integrations
 
@@ -109,10 +141,13 @@ flowchart TD
     Gateway --> Worker["Separate isolated Python / local MCP worker"]
     Worker -->|"Declared connection callbacks"| Gateway
     Gateway --> Execution["Execution Gateway: exact coding attempts"]
-    Execution --> Coding["Separate coding workers"]
+    Execution --> Coding["Separate Codex CLI / Claude Code workers"]
     Coding --> QA["Independent QA and saved candidate evidence"]
     QA --> Review["Operator review before merge or activation"]
     Gateway --> Records[("PostgreSQL: projects, runs, approvals, events")]
+    Codex["Your Codex workspace + Company Memory plugin"] --> MemoryMCP["Authenticated company-memory MCP"]
+    MemoryMCP -->|"Search/read approved facts"| Context
+    MemoryMCP -->|"Selected capture proposal"| Gateway
 ```
 
 **One authority for tools.** The Tool Gateway checks project scope, the run's saved permissions, current profile grants, exact inputs, and required approvals. Integration Hub does not introduce another dispatcher. A `SKILL.md` supplies procedure and never grants tools or credentials.

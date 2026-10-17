@@ -45,6 +45,11 @@ Current task state and long-lived knowledge are separate inputs. Team context pr
 
 The Execution Gateway records exact coding attempts, frozen input identities, readiness, cancellation, and terminal receipts. It reconciles evidence from a separate worker instead of treating dispatch as success.
 
+External coding clients own their coding loops. OneFoundry owns the objective,
+scoped Engineer/QA assignments, evidence, and operator decisions. Provider-native
+coding subagents remain subject to the client's controls and runner policy;
+their deployment has no separate end-to-end qualification in this release.
+
 For native maintenance, Chief first checks the actual operation. Missing permission or configuration uses the setup owner. A verified implementation gap can create a linked Engineer assignment against an approved OneFoundry maintenance source. Target approval binds the original task, committed source revision, allowed edit paths, acceptance commands, QA image, configured model/provider, and execution bounds.
 
 The isolated Codex worker receives a filtered committed tree and disposable home. Credentials, Git history/configuration, receipt storage, and the running checkout stay outside the coding container. A separate broker admits bounded provider access. Approved text changes become a saved candidate; baseline checks must fail and candidate checks must pass. Independent QA reconstructs that exact patch in a fresh tree and runs the approved commands without public networking.
@@ -63,11 +68,23 @@ Local lexical retrieval is the default. Optional local hybrid retrieval adds cur
 
 The company-memory MCP service uses authenticated, server-owned grants for search/read and optional explicitly selected capture proposals. It does not expose SQL, arbitrary tools, or approval authority. The separate [Zoho Mail connector](zoho-mail.md) has its own project-bound client and approval rules; provider sign-in and mailbox acceptance remain separate gates. Neither integration implies a generic plugin catalog or installation flow.
 
+A developer can connect Codex through the Company Memory plugin, retrieve current
+project/company facts, and request retention of selected coding-session knowledge.
+Preview, human confirmation, and local candidate review precede publication.
+This connection is separate from the isolated coding worker and does not grant
+that worker access to the host's plugin, credentials, or memory service.
+
 The Skill Library stores immutable `SKILL.md` versions. Profiles can pin procedures and supported turns can select bounded relevant procedures. Saved versions and hashes make the supplied instructions inspectable. Procedure content never grants tools or overrides approval. See [company memory](company-memory.md) for review, capture, scope, MCP, and embedding configuration.
 
 ## Connections, automation, and outward actions
 
 Profiles resolve their configured model account and route for each native turn. Provider adapters determine supported model and tool behavior. API keys and account tokens live in protected local credential storage outside PostgreSQL, events, artifacts, and release bundles. The app's model connection and an external coding CLI's login are separate stores. Admitted company context can go to the configured AI provider; enabled research and connector actions use their configured services.
+
+Profiles may use supported cloud APIs or local Ollama models, and different roles
+can bind different accounts/models. Cloud paths include the implemented OpenAI,
+Anthropic, Gemini, xAI/Grok, and connectable compatible-provider routes. Ollama
+uses a validated local endpoint or the optional Compose service. Provider/model
+discovery and configuration do not prove live tool or coding-workflow readiness.
 
 Project automation can react to admitted signals and schedules, create work, and optionally start eligible text work within configured bounds. `COORDINATION_MODE` defaults to `off`; connections and rules require operator setup. Mail intake, watched documents, paired remote messaging, and approved file writes retain their own scope and uncertainty rules. A remote message cannot grant tools or approve an outward action.
 

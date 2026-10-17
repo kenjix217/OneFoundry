@@ -6,6 +6,14 @@ results and files, and review outward actions. This guide covers setup and
 operation; the [project overview](../README.md) introduces the workflows and
 architecture.
 
+Role agents can use supported cloud model APIs or locally hosted Ollama models,
+with an account/model chosen per profile. Coding work uses separate Codex CLI or
+Claude Code workers through the Execution Gateway and its supported execution
+paths. When working directly in Codex, the Company Memory plugin can retrieve
+approved project/company knowledge and propose explicitly selected excerpts for
+local review. See [models](#model-account-configuration), [delegated coding](#delegated-coding),
+and [company memory](docs/company-memory.md).
+
 The [architecture overview](docs/ARCHITECTURE.md) describes current owners and boundaries. Versioned packaging, installation, software updates, and rollback are documented in [docs/RELEASE.md](docs/RELEASE.md). The installed release path is separate from this source checkout. [VERSION](VERSION) and [CHANGELOG.md](CHANGELOG.md) describe the source; [PROGRESS.md](PROGRESS.md) and the [maintenance acceptance record](docs/SELF_EXTENSION_COMPLETION.md) identify what was verified in each release.
 
 OneFoundry is the product name, source directory, Python package, PostgreSQL database, and Docker Compose project. For a versioned installation, use the archive-backed `onefoundry update` procedure in [docs/RELEASE.md](docs/RELEASE.md); it checkpoints the declared persistent volumes, applies migrations, checks readiness, and attempts recovery on failure. A one-time migration from an older development Compose project needs an explicit data and artifact cutover plan. Browser storage migrates saved project selection and unresolved request keys when the new UI reads them.

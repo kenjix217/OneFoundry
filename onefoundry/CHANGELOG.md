@@ -9,6 +9,7 @@
 - Patch the transitive source-map-js build dependency and guard its indexed-map input bound.
 - Source implementation and disposable acceptance are separate from installation and live provider activation.
 - Document the extension workflow, Python SDK quick start, gateway architecture, contributor setup, and current verification limits in the public README and operator guide.
+- Explain cloud API and local Ollama role models, external Codex/Claude coding workers, scoped assignments, and explicit Codex-to-company-memory retention with current qualification limits.
 
 ## 0.19.1
 
