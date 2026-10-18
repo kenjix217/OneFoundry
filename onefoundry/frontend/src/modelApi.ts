@@ -22,6 +22,7 @@ export interface ModelAccount {
   catalog_valid: boolean;
   model_count: number;
   last_refreshed_at: string | null;
+  connection_status?: 'connected' | 'expired' | 'reconnect_required' | 'pending' | 'login_expired' | 'login_incomplete' | null;
 }
 
 export interface CatalogModel {
@@ -52,6 +53,10 @@ function provider(value: unknown): ModelProvider {
 
 function parseAccount(value: unknown): ModelAccount {
   const item = object(value);
+  if (item.connection_status !== undefined && item.connection_status !== null &&
+      (typeof item.connection_status !== 'string' || !['connected', 'expired', 'reconnect_required', 'pending', 'login_expired', 'login_incomplete'].includes(item.connection_status))) {
+    throw new ApiError('Invalid model connection status.', null);
+  }
   if ((item.auth_kind !== 'api_key' && item.auth_kind !== 'none' && item.auth_kind !== 'account_runtime') || (item.endpoint !== null && typeof item.endpoint !== 'string') || typeof item.credential_present !== 'boolean' || typeof item.catalog_valid !== 'boolean' ||
       typeof item.model_count !== 'number' || !Number.isSafeInteger(item.model_count) || item.model_count < 0 ||
       (item.last_refreshed_at !== null && typeof item.last_refreshed_at !== 'string')) {
@@ -62,6 +67,7 @@ function parseAccount(value: unknown): ModelAccount {
     label: valueString(item.label), auth_kind: item.auth_kind, endpoint: item.endpoint, credential_present: item.credential_present,
     catalog_valid: item.catalog_valid,
     model_count: item.model_count, last_refreshed_at: item.last_refreshed_at,
+    connection_status: item.connection_status as ModelAccount['connection_status'],
   };
 }
 
@@ -143,6 +149,10 @@ export async function finishCodexConnection(projectId: string, accountId: string
 
 export async function restartCodexConnection(projectId: string, accountId: string): Promise<CodexChallenge> {
   return parseChallenge(await request(`${base(projectId)}/accounts/${encodeURIComponent(accountId)}/codex/restart`, { method: 'POST' }));
+}
+
+export async function reconnectCodexConnection(projectId: string, accountId: string): Promise<CodexChallenge> {
+  return parseChallenge(await request(`${base(projectId)}/accounts/${encodeURIComponent(accountId)}/codex/reconnect`, { method: 'POST' }));
 }
 
 export async function getCodexChallenge(projectId: string, accountId: string): Promise<CodexChallenge> {

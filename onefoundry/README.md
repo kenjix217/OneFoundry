@@ -100,6 +100,17 @@ The Models API shows 61 choices adapted from DistrictAI's directory plus OneFoun
 
 The app keeps API keys and Codex/Grok device and refresh credentials only in `MODEL_SECRET_ROOT` (default `/model-secrets`), an app-owned directory with mode `0700`; each account file is mode `0600`. Compose initializes a dedicated named volume. Credentials are never returned by the API or saved in PostgreSQL. Device sign-in returns only the short user code and verification URL to the browser. For direct installations, create the directory under the app UID before startup. `/health/ready` checks that directory and the model tables.
 
+Codex account cards read the saved credential expiry and show **Reconnect required**
+with a visible explanation when the login expires or renewal is rejected.
+**Reconnect account** starts device sign-in on that same account, preserving agent
+model bindings. **Complete login** checks the displayed sign-in; automatic polling
+also continues at the provider's interval. **Refresh status** rereads local account
+state without requesting a new login or calling a model. Saved model names remain
+unavailable while disconnected; after reconnecting, use **Discover models** to
+refresh their availability. A failed request for a fresh sign-in code preserves
+the previous credentials. Reconnecting does not restart stopped conversations or
+change the developer's local Codex CLI login.
+
 If account removal returns 503, reload the account list before trying again: the database deletion may have completed. When the account is gone, restart the single local app service to reconcile any remaining orphan key file.
 If account removal commits but file cleanup fails, the API reports an unknown failure and startup removes the orphan UUID key file after reading the account table. This recovery assumes one OneFoundry app instance owns the secret volume.
 

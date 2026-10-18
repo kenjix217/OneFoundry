@@ -45,7 +45,7 @@ from openai import (
 from openai.types.shared import Reasoning, ReasoningEffort
 from sqlalchemy import text
 
-from onefoundry.gateway_errors import Conflict, NotFound
+from onefoundry.gateway_errors import Conflict, NotFound, Unavailable
 from onefoundry.grok_account import valid_account_token, valid_model_id
 from onefoundry.inference import InvalidRequestError
 from onefoundry.inference.ollama import _local_endpoint
@@ -67,6 +67,19 @@ if TYPE_CHECKING:
     from onefoundry.tool_gateway import ToolGateway
 
 CODEX_ACCOUNT_BASE_URL = "https://chatgpt.com/backend-api/codex"
+MEMORY_UNAVAILABLE_REASONS = frozenset(
+    {
+        "memory_embedding_asset_invalid",
+        "memory_embedding_busy",
+        "memory_embedding_content_unavailable",
+        "memory_embedding_dimensions_mismatch",
+        "memory_embedding_index_incomplete",
+        "memory_embedding_model_mismatch",
+        "memory_embedding_response_invalid",
+        "memory_embedding_timeout",
+        "memory_embedding_unavailable",
+    }
+)
 TEAM_INSTRUCTIONS = (
     "You are one agent on a OneFoundry work-order team. Work from the saved task data in the "
     "user message. Use the provided tools for every saved action; describing an action in prose "
@@ -385,7 +398,7 @@ class TaskSessionSdkTurn:
             tools.reconcile_previous_actions()
             snapshot = TaskSessionContext(self.gateway, self.settings).prepare(project_id, attempt_id)
             specifications = list(tools.specifications()[0]["tools"])
-        except (Conflict, NotFound, ValueError) as error:
+        except (Conflict, NotFound, Unavailable, ValueError) as error:
             if bound.client is not None:
                 asyncio.run(bound.client.close())
             if isinstance(error, TeamContextBudgetExceeded):
@@ -394,6 +407,14 @@ class TaskSessionSdkTurn:
                     attempt_id,
                     "failed",
                     reason="team_context_budget_exceeded",
+                )
+            if isinstance(error, Unavailable):
+                reason = str(error)
+                return self.attempts.settle(
+                    project_id,
+                    attempt_id,
+                    "failed",
+                    reason=reason if reason in MEMORY_UNAVAILABLE_REASONS else "runner_preflight_unavailable",
                 )
             return self.attempts.settle(project_id, attempt_id, "failed", reason="runner_preflight_failed")
         agents_debug.DONT_LOG_MODEL_DATA = True

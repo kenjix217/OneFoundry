@@ -29,6 +29,7 @@ from onefoundry.role_tool_admission import (
     ToolDependencyFailure,
     ToolOutputRejected,
     ToolPolicyRejected,
+    ToolRepositoryReadFailure,
     ToolTimedOut,
 )
 from onefoundry.task_session_assignments import DelegateRequest, DependencyNotAccepted, TaskSessionAssignments
@@ -859,12 +860,17 @@ class TaskSessionTools:
         if prior["status"] == "done":
             return _response(True, prior["result"])
         if prior["status"] == "failed":
+            repository_correction = (
+                ToolRepositoryReadFailure.saved_correction(prior["reason"], str(arguments.get("tool_id", "")))
+                if name == ROLE
+                else None
+            )
             correction = (
                 InspectionStateChanged.correction()
                 if prior["reason"] == InspectionStateChanged.code
                 else DependencyNotAccepted.correction()
                 if prior["reason"] == DependencyNotAccepted.code
-                else task_session_report_contract.correction(prior["reason"])
+                else repository_correction or task_session_report_contract.correction(prior["reason"])
             )
             return _response(False, correction)
         try:
@@ -886,6 +892,9 @@ class TaskSessionTools:
         except InspectionStateChanged as exc:
             self._finish(scope, prior["id"], result=None, reason=exc.code)
             return _response(False, exc.correction())
+        except ToolRepositoryReadFailure as exc:
+            self._finish(scope, prior["id"], result=None, reason=exc.code)
+            return _response(False, exc.as_correction())
         except (ToolDependencyFailure, ToolOutputRejected, ToolPolicyRejected, ToolTimedOut) as exc:
             reason = (
                 "tool_dependency_failure"

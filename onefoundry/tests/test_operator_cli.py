@@ -19,7 +19,12 @@ def private_env(tmp_path: Path) -> Path:
 def test_config_only_exposes_validated_nonsecret_settings(tmp_path: Path) -> None:
     path = private_env(tmp_path)
     listed = operator_config.describe(path, "list", None)
-    assert listed["settings"] == {"APP_PORT": "8765", "MAILPIT_UI_PORT": None, "RUNNER_WALL_SECONDS": None}
+    assert listed["settings"] == {
+        "APP_PORT": "8765",
+        "MAILPIT_UI_PORT": None,
+        "RUNNER_WALL_SECONDS": None,
+        "TEAM_MAX_ASSIGNMENTS_PER_ORDER": None,
+    }
     assert "owner" not in json.dumps(listed)
     changed = operator_config.set_value(path, "APP_PORT", "18765")
     assert changed["restart_required"] is True
@@ -48,6 +53,32 @@ def test_config_rejects_invalid_duplicates_and_symlink(tmp_path: Path) -> None:
     link.symlink_to(path)
     with pytest.raises(ValueError, match="regular file"):
         operator_config.set_value(link, "APP_PORT", "9000")
+
+
+def test_assignment_capacity_is_an_explicit_installed_setting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = private_env(tmp_path)
+    name = "TEAM_MAX_ASSIGNMENTS_PER_ORDER"
+    monkeypatch.setenv(name, "50")
+    assert operator_config.describe(path, "get", name)["value"] is None
+    explained = operator_config.describe(path, "explain", name)
+    assert explained["valid_range"] == [1, 50]
+    assert explained["restart_required_after_set"] is True
+    result = operator_config.set_value(path, name, "16")
+    assert result == {"setting": name, "value": "16", "restart_required": True}
+    assert operator_config.describe(path, "get", name)["value"] == "16"
+    assert "DB_PASSWORD=owner" in path.read_text(encoding="utf-8")
+    assert path.stat().st_mode & 0o777 == 0o600
+
+
+@pytest.mark.parametrize("value", ["0", "51", "-1", "none", "16 # capacity"])
+def test_assignment_capacity_rejects_invalid_values(tmp_path: Path, value: str) -> None:
+    path = private_env(tmp_path)
+    before = path.read_bytes()
+    with pytest.raises(ValueError, match="TEAM_MAX_ASSIGNMENTS_PER_ORDER"):
+        operator_config.set_value(path, "TEAM_MAX_ASSIGNMENTS_PER_ORDER", value)
+    assert path.read_bytes() == before
 
 
 def test_doctor_reports_install_failure_without_losing_error(

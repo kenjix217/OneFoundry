@@ -1,5 +1,16 @@
 # OneFoundry changelog
 
+## 0.20.2
+
+- Settle known memory-preparation dependency failures before a model turn starts, preserving safe failure reasons instead of leaving work running until interruption recovery.
+- Return specific repository read failures for protected content, unsupported files, size limits and changed source revisions. Preserve exact-source reads, hashes and credential screening.
+- Manage an already configured private search service with installed stack startup, shutdown and readiness so app-network recreation does not strand research.
+- Allow the operator CLI to configure the existing unfinished-assignment capacity, retaining its validated 1–50 range and explicit restart requirement.
+
+## 0.20.1
+
+- Fix Codex AI connection status to show expired logins and reconnect requirements, with same-account reconnect, login completion, and status refresh controls. Preserve agent bindings and keep saved models unavailable until the connection is renewed and models are refreshed.
+
 ## 0.20.0
 
 - Expand the existing Tool Gateway with a project extension catalog, shared API/MCP/webhook connections, exact-call approvals and an Integration Hub / Tool Foundry interface.

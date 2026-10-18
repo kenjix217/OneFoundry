@@ -10,6 +10,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 from onefoundry import role_repository_file as file
+from onefoundry.gateway_errors import NotFound
+from onefoundry.model_secrets import SecretStoreError
 
 if TYPE_CHECKING:
     from sqlalchemy import Connection
@@ -34,7 +36,9 @@ def _local_entries(
     deadline = time.monotonic() + settings.local_source_git_timeout_seconds
     with file._admit_repo(Path(settings.local_source_root), source["relative_path"]) as repo:
         if file._head(repo, deadline) != (source["branch"], source["revision"]):
-            raise file.RepositoryReadError("saved source branch or revision drifted")
+            raise file.RepositoryReadError(
+                "saved source branch or revision drifted", code="source_revision_drifted"
+            )
         tree_ref = source["revision"] if path == "." else f"{source['revision']}:{path}"
         raw = file._git_read(
             repo,
@@ -43,7 +47,9 @@ def _local_entries(
             deadline,
         )
         if file._head(repo, deadline) != (source["branch"], source["revision"]):
-            raise file.RepositoryReadError("saved source branch or revision drifted")
+            raise file.RepositoryReadError(
+                "saved source branch or revision drifted", code="source_revision_drifted"
+            )
     entries: list[dict[str, Any]] = []
     for line in raw.split(b"\0"):
         if not line:
@@ -79,8 +85,13 @@ def _github_entries(
     store = SourceStore(connection.engine, "repository-reader", settings)
     binding = _binding(store, context.project_id, UUID(source_id))
     if binding["revision"] != source["revision"]:
-        raise file.RepositoryReadError("GitHub source revision changed")
-    credential = store._credential(context.project_id, UUID(str(binding["account_id"])))
+        raise file.RepositoryReadError("GitHub source revision changed", code="source_revision_drifted")
+    try:
+        credential = store._credential(context.project_id, UUID(str(binding["account_id"])))
+    except (SecretStoreError, NotFound):
+        raise file.RepositoryReadError(
+            "GitHub account unavailable", code="source_account_unavailable"
+        ) from None
     entries = read_tree(
         binding["owner"],
         binding["repo"],
@@ -90,10 +101,21 @@ def _github_entries(
         settings,
         deadline=time.monotonic() + settings.github_timeout_seconds,
     )
-    if _binding(store, context.project_id, UUID(source_id)) != binding:
-        raise file.RepositoryReadError("GitHub source or account changed during read")
-    if store._credential(context.project_id, UUID(str(binding["account_id"]))) != credential:
-        raise file.RepositoryReadError("GitHub account changed during read")
+    current = _binding(store, context.project_id, UUID(source_id))
+    if current != binding:
+        code = (
+            "source_revision_drifted" if current["revision"] != binding["revision"] else "source_unavailable"
+        )
+        raise file.RepositoryReadError("GitHub source or account changed during read", code=code)
+    try:
+        if store._credential(context.project_id, UUID(str(binding["account_id"]))) != credential:
+            raise file.RepositoryReadError(
+                "GitHub account changed during read", code="source_account_unavailable"
+            )
+    except (SecretStoreError, NotFound):
+        raise file.RepositoryReadError(
+            "GitHub account unavailable", code="source_account_unavailable"
+        ) from None
     return entries
 
 

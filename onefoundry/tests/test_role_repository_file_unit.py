@@ -16,7 +16,7 @@ from onefoundry.role_repository_file import (
     repository_file,
     validate_repository_file,
 )
-from onefoundry.role_tool_admission import RunContext
+from onefoundry.role_tool_admission import RunContext, ToolRepositoryReadFailure
 from onefoundry.settings import Settings
 from tests.repository_read_fixture import _context as _context
 from tests.repository_read_fixture import _fixture as _fixture
@@ -69,8 +69,9 @@ def test_source_must_belong_to_project_and_match_saved_head(tmp_path: Path) -> N
     (repo / "src" / "answer.py").write_text("answer = 7\n")
     _git(repo, "add", ".")
     _git(repo, "commit", "-qm", "advance")
-    with pytest.raises(RepositoryReadError, match="drift"):
+    with pytest.raises(RepositoryReadError, match="drift") as drift:
         _read(engine, settings, context, source_id, "src/answer.py")
+    assert drift.value.code == "source_revision_drifted"
     engine.dispose()
 
 
@@ -121,9 +122,16 @@ def test_rejects_symlink_binary_oversize_and_secret_text(tmp_path: Path) -> None
             text("UPDATE project_sources SET revision=:revision WHERE id=:id"),
             {"revision": _git(repo, "rev-parse", "HEAD"), "id": str(source_id)},
         )
-    for path in ("link", "binary.bin", "large.txt", "secret.txt"):
-        with pytest.raises(RepositoryReadError):
+    expected_codes = {
+        "link": "source_file_unreadable",
+        "binary.bin": "source_content_unsupported",
+        "large.txt": "source_file_too_large",
+        "secret.txt": "source_content_protected",
+    }
+    for path, code in expected_codes.items():
+        with pytest.raises(RepositoryReadError) as error:
             _read(engine, settings, context, source_id, path)
+        assert error.value.code == code
     engine.dispose()
 
 
@@ -131,6 +139,21 @@ def test_rejects_database_uri_credentials_in_source_text(tmp_path: Path) -> None
     engine, settings, context, source_id, repo, _revision = _fixture(
         tmp_path, b"DB_URI=postgresql://alice:abc123@db.internal/company\n"
     )
-    with pytest.raises(RepositoryReadError, match="secret"):
+    with pytest.raises(RepositoryReadError, match="secret") as error:
         _read(engine, settings, context, source_id, "src/answer.py")
+    assert error.value.code == "source_content_protected"
     engine.dispose()
+
+
+def test_repository_failure_guidance_is_static_and_bounded() -> None:
+    blocked = ToolRepositoryReadFailure("source_content_protected", "repository_file_v1")
+    assert blocked.code == "source_content_protected"
+    assert "secret screening" in blocked.next_step
+    assert "range read" in blocked.next_step
+    oversized = ToolRepositoryReadFailure("source_file_too_large", "repository_file_v1")
+    assert "repository_file_range_v1" in oversized.next_step
+    range_oversized = ToolRepositoryReadFailure("source_file_too_large", "repository_file_range_v1")
+    assert "range reader's complete-file limit" in range_oversized.next_step
+    unknown = ToolRepositoryReadFailure("untrusted owner text", "repository_file_v1")
+    assert unknown.code == "source_unavailable"
+    assert "untrusted owner text" not in str(unknown) + unknown.next_step

@@ -28,6 +28,8 @@ from onefoundry.codex_account import (
     refresh_credential,
     start_device_login,
 )
+from onefoundry.codex_connection_recovery import make_codex_recovery_router
+from onefoundry.codex_connection_status import CodexConnectionStatus, codex_connection_status
 from onefoundry.grok_account import (
     DeviceChallenge as GrokDeviceChallenge,
 )
@@ -217,6 +219,7 @@ class AccountOut(StrictModel):
     catalog_valid: bool
     model_count: int
     last_refreshed_at: datetime | None
+    connection_status: CodexConnectionStatus | None = None
 
 
 class CatalogModelOut(StrictModel):
@@ -316,6 +319,9 @@ class ModelGateway:
         row["catalog_valid"] = bool(
             row["catalog_valid"] and (row["credential_present"] or row["auth_kind"] == "none")
         )
+        if row["provider"] == "openai_codex_runtime" and row["auth_kind"] == "account_runtime":
+            row["connection_status"] = codex_connection_status(self.secrets, row["id"], ready)
+            row["catalog_valid"] = bool(row["catalog_valid"] and row["connection_status"] == "connected")
         return row
 
     def list_accounts(self, project_id: UUID) -> list[dict[str, Any]]:
@@ -781,9 +787,18 @@ class ModelGateway:
             state = decode_state(self.secrets.read(account_id))
             if state["kind"] != "connected":
                 raise CodexConnectionError("Codex account is not connected")
+            if state.get("reconnect_required"):
+                raise CodexConnectionError(
+                    "Codex login requires reconnection; reconnect account in AI connections"
+                )
             expires_at = state.get("expires_at")
             if isinstance(expires_at, int) and expires_at <= time.time() + 60:
-                state = refresh_credential(state, self.settings)
+                try:
+                    state = refresh_credential(state, self.settings)
+                except CodexTokenExchangeError as error:
+                    if error.status in {400, 401, 403}:
+                        self.secrets.write(account_id, encode_state({**state, "reconnect_required": True}))
+                    raise
                 self.secrets.write(account_id, encode_state(state))
                 connection.execute(
                     text(
@@ -944,6 +959,12 @@ class ModelGateway:
                 present = _grok_has_connected_secret(self.secrets, row["account_id"], revision)
             else:
                 present = self.secrets.present(row["account_id"])
+            if row["provider"] == "openai_codex_runtime" and auth_kind == "account_runtime":
+                present = (
+                    present
+                    and codex_connection_status(self.secrets, row["account_id"], bool(credential_ready))
+                    == "connected"
+                )
             row["available"] = bool(catalog_valid and (auth_kind == "none" or credential_ready and present))
             result.append(row)
         return result
@@ -1069,6 +1090,7 @@ class ModelGateway:
 
 def make_model_router(gateway: ModelGateway) -> APIRouter:
     router = APIRouter(prefix="/api/projects/{project_id}/model")
+    router.include_router(make_codex_recovery_router(gateway))
 
     @router.get("/providers", response_model=list[ProviderOut])
     def providers(project_id: UUID) -> list[ProviderOut]:

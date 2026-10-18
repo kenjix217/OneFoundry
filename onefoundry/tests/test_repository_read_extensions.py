@@ -5,13 +5,14 @@ import hashlib
 import time
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from types import SimpleNamespace
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import Connection, text
 
-from onefoundry import repository_github, source_store
+from onefoundry import repository_github, source_github_file, source_store
 from onefoundry import role_repository_file as file
 from onefoundry import role_repository_range as document
 from onefoundry import role_repository_tree as tree
@@ -99,10 +100,11 @@ def test_readers_reject_bad_inputs_secret_and_changed_commit(tmp_path: Path) -> 
     (repo / "src" / "answer.py").write_text("changed\n")
     _git(repo, "add", "--all")
     _git(repo, "commit", "-qm", "changed")
-    with engine.connect() as connection, pytest.raises(RepositoryReadError):
+    with engine.connect() as connection, pytest.raises(RepositoryReadError) as error:
         tree.repository_tree(
             connection, context, tree.parse_repository_tree({"source_id": str(source_id)}), settings
         )
+    assert error.value.code == "source_revision_drifted"
 
 
 def test_full_document_screening(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -214,7 +216,7 @@ def test_github_exact_tree_and_bounded_blob(monkeypatch: pytest.MonkeyPatch, tmp
         )
         == content
     )
-    with pytest.raises(RepositoryReadError):
+    with pytest.raises(RepositoryReadError) as oversized:
         repository_github.read_blob(
             "owner",
             "repo",
@@ -225,6 +227,7 @@ def test_github_exact_tree_and_bounded_blob(monkeypatch: pytest.MonkeyPatch, tmp
             limit=10,
             deadline=deadline,
         )
+    assert oversized.value.code == "source_file_too_large"
 
     engine, settings, context, source_id, _repo, _revision = _fixture(tmp_path)
     with engine.begin() as connection:
@@ -295,6 +298,61 @@ def test_github_exact_tree_and_bounded_blob(monkeypatch: pytest.MonkeyPatch, tmp
             assert first["text"] == content.decode()[: first["next_offset"]]
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("change", "expected_code"),
+    [
+        ("initial_revision", "source_revision_drifted"),
+        ("during_revision", "source_revision_drifted"),
+        ("during_source", "source_unavailable"),
+        ("credential", "source_account_unavailable"),
+    ],
+)
+def test_github_file_binding_failures_have_safe_codes(
+    monkeypatch: pytest.MonkeyPatch, change: str, expected_code: str
+) -> None:
+    source_id, project_id, account_id = uuid4(), uuid4(), uuid4()
+    revision = "a" * 40
+    binding = {
+        "account_id": account_id,
+        "owner": "owner",
+        "repo": "repo",
+        "revision": revision,
+        "created_at": 1,
+        "account_created": 1,
+    }
+    calls = 0
+
+    def bound(*_args: object) -> dict[str, Any]:
+        nonlocal calls
+        calls += 1
+        if change == "initial_revision":
+            return {**binding, "revision": "b" * 40}
+        if calls > 1 and change == "during_revision":
+            return {**binding, "revision": "b" * 40}
+        if calls > 1 and change == "during_source":
+            return {**binding, "repo": "replacement"}
+        return binding
+
+    credentials = 0
+
+    def credential(*_args: object) -> str:
+        nonlocal credentials
+        credentials += 1
+        return "replacement" if change == "credential" and credentials > 1 else "fixture"
+
+    monkeypatch.setattr(source_github_file, "_binding", bound)
+    monkeypatch.setattr(source_github_file, "read_blob", lambda *_args, **_kwargs: b"safe text")
+    store = cast(
+        source_store.SourceStore,
+        SimpleNamespace(settings=Settings(db_password="fixture-only"), _credential=credential),
+    )
+    with pytest.raises(RepositoryReadError) as error:
+        source_github_file.read(
+            store, project_id, source_id, revision, "README.md", limit=8000, deadline=time.monotonic() + 10
+        )
+    assert error.value.code == expected_code
 
 
 def test_new_local_api_pages_unicode_and_rejects_invalid_offsets(tmp_path: Path) -> None:

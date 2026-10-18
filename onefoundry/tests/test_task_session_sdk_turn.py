@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from typing import Any, cast
+from unittest.mock import AsyncMock, MagicMock, Mock
 from uuid import uuid4
 
 import httpx2 as httpx
@@ -11,10 +14,17 @@ from agents import MaxTurnsExceeded, ModelBehaviorError
 from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
 from agents.models.openai_responses import OpenAIResponsesModel
 
-from onefoundry.gateway_errors import Conflict
+from onefoundry.gateway_errors import Conflict, Unavailable
 from onefoundry.profile_text_runtime import ProfileTextRuntime
 from onefoundry.settings import Settings
-from onefoundry.task_session_sdk_turn import TeamModelUnavailable, classify_failure, team_model
+from onefoundry.task_session_context import TaskSessionContext
+from onefoundry.task_session_sdk_turn import (
+    TaskSessionSdkTurn,
+    TeamModel,
+    TeamModelUnavailable,
+    classify_failure,
+    team_model,
+)
 
 
 def _runtime(provider: str, model: str = "m-1", **values: object) -> ProfileTextRuntime:
@@ -36,6 +46,53 @@ def _runtime(provider: str, model: str = "m-1", **values: object) -> ProfileText
 
 
 SETTINGS = Settings(db_password="test-only")
+
+
+@pytest.mark.parametrize(
+    ("failure_reason", "saved_reason"),
+    [
+        ("memory_embedding_timeout", "memory_embedding_timeout"),
+        ("unexpected protected dependency detail", "runner_preflight_unavailable"),
+    ],
+)
+def test_preflight_memory_failure_settles_without_provider_call(
+    monkeypatch: pytest.MonkeyPatch,
+    failure_reason: str,
+    saved_reason: str,
+) -> None:
+    import onefoundry.task_session_sdk_turn as sdk_turn
+
+    project_id, attempt_id, session_id, profile_id = (uuid4() for _ in range(4))
+    engine = MagicMock()
+    engine.connect.return_value.__enter__.return_value.scalar.return_value = None
+    gateway = cast(Any, SimpleNamespace(engine=engine))
+    worker = TaskSessionSdkTurn(gateway, SETTINGS)
+    worker.attempts = Mock()
+    worker.attempts.settle.return_value = {"outcome": "failed"}
+    closed = AsyncMock()
+    bound = TeamModel(
+        cast(Any, object()), "fixture", "fixture", False, False, cast(Any, SimpleNamespace(close=closed))
+    )
+    worker.model_factory = lambda _runtime, _settings: bound
+    monkeypatch.setattr(sdk_turn, "configured_profile", lambda *_args: {})
+    monkeypatch.setattr(sdk_turn, "profile_blockers", lambda *_args: [])
+    monkeypatch.setattr(sdk_turn, "resolve", lambda *_args: cast(Any, object()))
+    monkeypatch.setattr(sdk_turn, "bind", lambda *_args: None)
+    monkeypatch.setattr(
+        sdk_turn, "TaskSessionTools", lambda *_args: SimpleNamespace(reconcile_previous_actions=lambda: 0)
+    )
+    monkeypatch.setattr(
+        TaskSessionContext,
+        "prepare",
+        lambda *_args: (_ for _ in ()).throw(Unavailable(failure_reason)),
+    )
+    monkeypatch.setattr(sdk_turn, "_run", Mock(side_effect=AssertionError("provider must not run")))
+
+    assert worker.run_claimed(
+        project_id, {"id": attempt_id, "session_id": session_id, "profile_id": profile_id}
+    ) == {"outcome": "failed"}
+    worker.attempts.settle.assert_called_once_with(project_id, attempt_id, "failed", reason=saved_reason)
+    closed.assert_awaited_once()
 
 
 def _base(bound_client: object) -> str:

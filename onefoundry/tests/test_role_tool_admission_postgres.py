@@ -19,12 +19,14 @@ from sqlalchemy.exc import DBAPIError
 
 from onefoundry import role_tool_admission
 from onefoundry.main import create_app
+from onefoundry.role_repository_file import RepositoryReadError
 from onefoundry.role_tool_admission import (
     READ_TOOLS,
     ToolDenied,
     ToolDependencyFailure,
     ToolOutcomeUnknown,
     ToolOutputRejected,
+    ToolRepositoryReadFailure,
     ToolTimedOut,
 )
 from onefoundry.settings import Settings
@@ -124,6 +126,50 @@ def _call(
         arguments,
         tool_version=version,
     )
+
+
+@pytest.mark.parametrize(
+    ("owner_code", "receipt_code"),
+    [
+        ("source_content_protected", "source_content_protected"),
+        ("source_file_too_large", "source_file_too_large"),
+        ("unrecognized_owner_code", "source_unavailable"),
+    ],
+)
+def test_repository_read_failure_records_safe_reason_without_content(
+    client: TestClient,
+    gateway: ToolGateway,
+    monkeypatch: pytest.MonkeyPatch,
+    owner_code: str,
+    receipt_code: str,
+) -> None:
+    project_id, run_id, profile_id = _run(client, gateway, tools=["repository_file_v1"])
+    original = READ_TOOLS["repository_file_v1"]
+
+    def blocked(*_args: object) -> dict[str, Any]:
+        raise RepositoryReadError("fixture source text must not be recorded", code=owner_code)
+
+    monkeypatch.setitem(
+        READ_TOOLS,
+        "repository_file_v1",
+        replace(original, execute_with_gateway=blocked),
+    )
+    with pytest.raises(ToolRepositoryReadFailure) as error:
+        _call(
+            gateway,
+            project_id,
+            run_id,
+            profile_id,
+            "repository-blocked",
+            "repository_file_v1",
+            {"source_id": str(uuid4()), "path": "README.md"},
+        )
+    assert error.value.code == receipt_code
+    assert "fixture source text" not in str(error.value)
+    events = _tool_events(gateway, project_id, run_id)
+    assert [item["event_type"] for item in events] == ["role_tool_started", "role_tool_finished"]
+    assert events[-1]["payload"]["reason"] == receipt_code
+    assert "fixture source text" not in json.dumps(events)
 
 
 def test_admitted_read_records_bounded_receipt_without_source_text(

@@ -295,16 +295,18 @@ def _blob(repo: _AdmittedRepo, revision: str, path: str, limit: int, deadline: f
         mode, kind, object_id, size_text = metadata.decode("ascii").split()
         size = int(size_text)
     except (ValueError, UnicodeDecodeError):
-        raise RepositoryReadError("repository file unavailable") from None
+        raise RepositoryReadError("repository file unavailable", code="source_file_unreadable") from None
     if (
         not raw.endswith(b"\0")
         or found_path != path.encode("utf-8")
         or mode not in {"100644", "100755"}
         or kind != "blob"
         or SHA40.fullmatch(object_id) is None
-        or not 0 <= size <= limit
+        or size < 0
     ):
-        raise RepositoryReadError("repository file unsupported or too large")
+        raise RepositoryReadError("repository file unsupported or too large", code="source_file_unreadable")
+    if size > limit:
+        raise RepositoryReadError("repository file exceeds the read limit", code="source_file_too_large")
     data = _git_read(repo, ("cat-file", "blob", object_id), size, deadline)
     actual = hashlib.sha1(f"blob {len(data)}\0".encode() + data).hexdigest()  # noqa: S324 - Git object ID
     if len(data) != size or actual != object_id:
@@ -409,7 +411,9 @@ def _local_file(source: dict[str, Any], path: str, settings: Settings, *, limit:
     deadline = time.monotonic() + settings.local_source_git_timeout_seconds
     with _admit_repo(Path(settings.local_source_root), source["relative_path"]) as repo:
         if _head(repo, deadline) != (source["branch"], source["revision"]):
-            raise RepositoryReadError("saved source branch or revision drifted")
+            raise RepositoryReadError(
+                "saved source branch or revision drifted", code="source_revision_drifted"
+            )
         data = _blob(
             repo,
             source["revision"],
@@ -418,7 +422,9 @@ def _local_file(source: dict[str, Any], path: str, settings: Settings, *, limit:
             deadline,
         )
         if _head(repo, deadline) != (source["branch"], source["revision"]):
-            raise RepositoryReadError("saved source branch or revision drifted")
+            raise RepositoryReadError(
+                "saved source branch or revision drifted", code="source_revision_drifted"
+            )
     return data
 
 
@@ -433,11 +439,15 @@ def _file_result(
     try:
         content = data.decode("utf-8")
     except UnicodeDecodeError:
-        raise RepositoryReadError("repository file is not UTF-8 text") from None
+        raise RepositoryReadError(
+            "repository file is not UTF-8 text", code="source_content_unsupported"
+        ) from None
     if "\x00" in content or any(ord(char) < 32 and char not in "\t\n\r" for char in content):
-        raise RepositoryReadError("repository file is not plain text")
+        raise RepositoryReadError("repository file is not plain text", code="source_content_unsupported")
     if contains_sensitive_text(content):
-        raise RepositoryReadError("repository file appears to contain a secret")
+        raise RepositoryReadError(
+            "repository file appears to contain a secret", code="source_content_protected"
+        )
     with connection.engine.connect() as fresh:
         if _source(fresh, context, source_id) != source:
             raise RepositoryReadError("saved source changed during read")

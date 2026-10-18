@@ -105,6 +105,53 @@ class ToolDependencyFailure(Exception):
     """The admitted tool's owning dependency failed."""
 
 
+class ToolRepositoryReadFailure(ToolDependencyFailure):
+    """A repository read failed with a bounded, content-free owner reason."""
+
+    _NEXT_STEPS = {
+        "source_content_protected": (
+            "This committed file was blocked by secret screening. Review the source outside the agent "
+            "tool; do not retry it through a range read."
+        ),
+        "source_content_unsupported": "Choose a committed UTF-8 plain-text file.",
+        "source_file_too_large": (
+            "Use repository_file_range_v1 for this file if granted; a range read still screens the "
+            "whole document."
+        ),
+        "source_file_unreadable": (
+            "Check that the path names a supported regular file at the selected commit."
+        ),
+        "source_revision_drifted": (
+            "Select the repository's current committed revision, then retry with a new tool call."
+        ),
+        "source_account_unavailable": "Check the selected repository account and connection.",
+        "source_dependency_unavailable": (
+            "Check the repository connection and retry only after it is available."
+        ),
+        "source_probe_timed_out": "Check repository-read readiness and the configured timeout.",
+        "source_unavailable": "Inspect the selected repository and its read capability.",
+    }
+    _TOOL_IDS = frozenset({"repository_file_v1", "repository_tree_v1", "repository_file_range_v1"})
+
+    def __init__(self, code: str, tool_id: str) -> None:
+        self.code = code if code in self._NEXT_STEPS else "source_unavailable"
+        self.next_step = (
+            "This document exceeds the range reader's complete-file limit; choose a smaller committed file."
+            if self.code == "source_file_too_large" and tool_id == "repository_file_range_v1"
+            else self._NEXT_STEPS[self.code]
+        )
+        super().__init__(self.code)
+
+    def as_correction(self) -> dict[str, str]:
+        return {"reason": self.code, "next_step": self.next_step}
+
+    @classmethod
+    def saved_correction(cls, code: str, tool_id: str) -> dict[str, str] | None:
+        if code not in cls._NEXT_STEPS or tool_id not in cls._TOOL_IDS:
+            return None
+        return cls(code, tool_id).as_correction()
+
+
 class ToolOutputRejected(Exception):
     """The tool returned data that cannot safely enter the model context."""
 
@@ -971,9 +1018,13 @@ def invoke_tool(
     except Exception as error:
         if result_ready:
             raise ToolOutcomeUnknown("role tool outcome could not be recorded") from None
-        failure: ToolDenied | ToolOutputRejected | ToolTimedOut | ToolDependencyFailure
+        failure: (
+            ToolDenied | ToolOutputRejected | ToolTimedOut | ToolDependencyFailure | ToolRepositoryReadFailure
+        )
         if isinstance(error, (ToolDenied, ToolOutputRejected, ToolTimedOut)):
             failure = error
+        elif isinstance(error, role_repository_file.RepositoryReadError):
+            failure = ToolRepositoryReadFailure(error.code, tool_id)
         elif isinstance(error, DBAPIError) and getattr(error.orig, "sqlstate", None) in ("55P03", "57014"):
             failure = ToolTimedOut("role tool exceeded its configured timeout")
         else:
@@ -985,6 +1036,8 @@ def invoke_tool(
             if isinstance(failure, ToolOutputRejected)
             else "timeout"
             if isinstance(failure, ToolTimedOut)
+            else failure.code
+            if isinstance(failure, ToolRepositoryReadFailure)
             else "dependency_failure"
         )
         try:

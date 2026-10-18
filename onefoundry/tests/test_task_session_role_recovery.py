@@ -13,6 +13,7 @@ from onefoundry.role_tool_admission import (
     ToolOutcomeUnknown,
     ToolOutputRejected,
     ToolPolicyRejected,
+    ToolRepositoryReadFailure,
     ToolTimedOut,
 )
 from onefoundry.task_session_tools import ROLE, TaskSessionTools
@@ -75,6 +76,42 @@ def test_known_read_failure_is_saved_and_returned_for_recovery(
     assert body["reason"] == reason
     assert finish.call_args.kwargs["reason"] == reason
     assert finish.call_args.kwargs["result"] is None
+
+
+def test_repository_failure_replay_retains_safe_owner_guidance(monkeypatch: pytest.MonkeyPatch) -> None:
+    tools = bare_tools()
+    arguments = {
+        "tool_id": "repository_file_v1",
+        "arguments": {"source_id": str(uuid4()), "path": "README.md"},
+    }
+    scope = {"role_tools": [{"id": "repository_file_v1", "version": 1}]}
+    receipt = uuid4()
+    monkeypatch.setattr(tools, "_scope", Mock(return_value=scope))
+    monkeypatch.setattr(tools, "_admitted", Mock(return_value={ROLE}))
+    monkeypatch.setattr(
+        tools,
+        "_begin",
+        Mock(
+            side_effect=[
+                {"id": receipt, "status": "started"},
+                {"id": receipt, "status": "failed", "reason": "source_content_protected"},
+            ]
+        ),
+    )
+    finish = Mock()
+    monkeypatch.setattr(tools, "_finish", finish)
+    execute = Mock(side_effect=ToolRepositoryReadFailure("source_content_protected", "repository_file_v1"))
+    monkeypatch.setattr(tools, "_execute", execute)
+    first = json.loads(tools.invoke(ROLE, arguments, "same-read")["contentItems"][0]["text"])
+    replay = json.loads(tools.invoke(ROLE, arguments, "same-read")["contentItems"][0]["text"])
+    assert first == replay
+    assert first["reason"] == "source_content_protected"
+    assert "secret screening" in first["next_step"]
+    execute.assert_called_once()
+    finish.assert_called_once()
+    assert isinstance(
+        ToolRepositoryReadFailure("source_unavailable", "repository_file_v1"), ToolDependencyFailure
+    )
 
 
 def test_uncertain_effect_still_stops_without_claiming_failure(monkeypatch: pytest.MonkeyPatch) -> None:

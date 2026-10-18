@@ -9,6 +9,7 @@ from urllib.request import Request
 from uuid import UUID
 
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, text
 
 from onefoundry.codex_account import (
     CodexConnectionPending,
@@ -28,6 +29,145 @@ from onefoundry.model_secrets import ModelSecretStore
 from onefoundry.settings import Settings
 
 ORIGIN = {"origin": "http://localhost:8765"}
+
+
+def test_expired_codex_reconnect_preserves_bindings_and_rejects_stale_updates(tmp_path: Path) -> None:
+    root = tmp_path / "secrets"
+    root.mkdir(mode=0o700)
+    settings = Settings(
+        db_user=os.environ.get("APP_DB_USER", "onefoundry_app"),
+        db_password=os.environ["APP_DB_PASSWORD"],
+        model_secret_root=str(root),
+    )
+    engine = create_engine(settings.database_url)
+    store = ModelSecretStore(str(root))
+    try:
+        with TestClient(create_app(settings, engine), base_url="http://localhost:8765") as client:
+            project = client.post("/api/projects", json={"name": "Codex reconnect"}, headers=ORIGIN).json()[
+                "id"
+            ]
+            other = client.post("/api/projects", json={"name": "Other"}, headers=ORIGIN).json()["id"]
+            base = f"/api/projects/{project}"
+            model = f"{base}/model"
+            challenge = DeviceChallenge(
+                "https://auth.openai.com/codex/device",
+                "RECONNECT-CODE",
+                int(time.time()) + 600,
+                5,
+                "private-device",
+            )
+            with patch("onefoundry.model_gateway.start_device_login", return_value=challenge):
+                account_id = client.post(
+                    f"{model}/codex/start", json={"label": "Personal"}, headers=ORIGIN
+                ).json()["account"]["id"]
+            credential = {
+                "kind": "connected",
+                "access_token": "private-access",
+                "refresh_token": "private-refresh",
+                "account_id": "private-account",
+                "expires_at": int(time.time()) + 3600,
+            }
+            with patch("onefoundry.model_gateway.finish_device_login", return_value=credential):
+                assert (
+                    client.post(f"{model}/accounts/{account_id}/codex/finish", headers=ORIGIN).status_code
+                    == 200
+                )
+            with patch(
+                "onefoundry.model_gateway.discover_codex_models",
+                return_value=[DiscoveredModel("gpt-test", "Test", "text")],
+            ):
+                assert (
+                    client.post(f"{model}/accounts/{account_id}/refresh", headers=ORIGIN).status_code == 200
+                )
+            profile = client.post(
+                f"{base}/profiles",
+                json={
+                    "name": "Writer",
+                    "instructions": "Write plainly.",
+                    "model": "gpt-test",
+                    "model_account_id": account_id,
+                },
+                headers=ORIGIN,
+            )
+            assert profile.status_code == 201, profile.text
+            store.write(UUID(account_id), encode_state({**credential, "expires_at": int(time.time()) - 1}))
+            original = store.read(UUID(account_id))
+            endpoint = f"{model}/accounts/{account_id}/codex/reconnect"
+            with patch("onefoundry.model_gateway.refresh_credential") as no_refresh:
+                saved = client.get(f"{model}/accounts").json()[0]
+                assert saved["connection_status"] == "expired" and not saved["catalog_valid"]
+                assert not client.get(f"{model}/catalog").json()[0]["available"]
+                no_refresh.assert_not_called()
+            with patch(
+                "onefoundry.codex_connection_recovery.start_device_login",
+                side_effect=CodexDeviceStartError(530),
+            ) as start:
+                assert client.post(endpoint).status_code == 403
+                assert (
+                    client.post(
+                        f"/api/projects/{other}/model/accounts/{account_id}/codex/reconnect", headers=ORIGIN
+                    ).status_code
+                    == 404
+                )
+                assert (
+                    client.post(f"{model}/accounts/not-a-uuid/codex/reconnect", headers=ORIGIN).status_code
+                    == 422
+                )
+                start.assert_not_called()
+                assert client.post(endpoint, headers=ORIGIN).status_code == 502
+            assert store.read(UUID(account_id)) == original
+
+            def changed_credential(_settings: Settings) -> DeviceChallenge:
+                with engine.begin() as connection:
+                    connection.execute(
+                        text(
+                            "UPDATE model_accounts SET credential_revision=credential_revision+1 WHERE id=:a"
+                        ),
+                        {"a": UUID(account_id)},
+                    )
+                return challenge
+
+            with patch(
+                "onefoundry.codex_connection_recovery.start_device_login", side_effect=changed_credential
+            ):
+                stale = client.post(endpoint, headers=ORIGIN)
+            assert stale.status_code == 409 and "changed" in stale.json()["detail"]
+            assert store.read(UUID(account_id)) == original
+            with patch("onefoundry.codex_connection_recovery.start_device_login", return_value=challenge):
+                reconnect = client.post(endpoint, headers=ORIGIN)
+            assert reconnect.status_code == 200, reconnect.text
+            assert reconnect.json()["account"]["id"] == account_id
+            assert reconnect.json()["account"]["connection_status"] == "pending"
+            assert "private-device" not in reconnect.text and "private-access" not in reconnect.text
+            assert len(client.get(f"{model}/accounts").json()) == 1
+            bound = next(p for p in client.get(f"{base}/profiles").json() if p["id"] == profile.json()["id"])
+            assert bound["model_account_id"] == account_id and bound["model"] == "gpt-test"
+            assert not client.get(f"{model}/catalog").json()[0]["available"]
+            store.write(UUID(account_id), encode_state({"kind": "exchanged", "tokens": {}}))
+            with patch("onefoundry.codex_connection_recovery.start_device_login") as no_start:
+                assert client.post(endpoint, headers=ORIGIN).status_code == 409
+                no_start.assert_not_called()
+            with patch("onefoundry.model_gateway.finish_device_login", return_value=credential):
+                complete = client.post(f"{model}/accounts/{account_id}/codex/finish", headers=ORIGIN)
+            assert complete.status_code == 200 and complete.json()["connection_status"] == "connected"
+            with patch(
+                "onefoundry.model_gateway.discover_codex_models",
+                return_value=[DiscoveredModel("gpt-test", "Test", "text")],
+            ):
+                assert (
+                    client.post(f"{model}/accounts/{account_id}/refresh", headers=ORIGIN).status_code == 200
+                )
+            assert client.get(f"{model}/catalog").json()[0]["available"]
+            store.write(UUID(account_id), original)
+            with patch(
+                "onefoundry.model_gateway.refresh_credential", side_effect=CodexTokenExchangeError(401)
+            ):
+                assert (
+                    client.post(f"{model}/accounts/{account_id}/refresh", headers=ORIGIN).status_code == 409
+                )
+            assert client.get(f"{model}/accounts").json()[0]["connection_status"] == "reconnect_required"
+    finally:
+        engine.dispose()
 
 
 def test_codex_device_start_upstream_failure_saves_nothing(tmp_path: Path) -> None:

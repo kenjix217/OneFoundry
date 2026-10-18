@@ -10,6 +10,7 @@ from uuid import UUID
 from sqlalchemy import text
 
 from onefoundry.codex_account import CodexConnectionError, decode_state
+from onefoundry.codex_connection_status import codex_state_status
 from onefoundry.grok_account import GrokConnectionError
 from onefoundry.grok_account import decode_state as decode_grok_state
 from onefoundry.model_secrets import ModelSecretStore, SecretStoreError
@@ -99,9 +100,9 @@ def resolve(
             codex_state = decode_state(secrets.read(account["id"]))
         except (SecretStoreError, CodexConnectionError):
             raise Conflict("Codex model credential is unavailable") from None
-        expiry = codex_state.get("expires_at")
-        if codex_state.get("kind") != "connected" or isinstance(expiry, int) and expiry <= time.time() + 60:
-            raise Conflict("Codex model credential expired; refresh models")
+        status = codex_state_status(codex_state, True)
+        if status != "connected":
+            raise Conflict("Codex model login expired or unavailable; reconnect account in AI connections")
     elif account["auth_kind"] == "account_runtime" and account["provider"] == "xai":
         if not account["credential_ready"]:
             raise Conflict("Grok model account is not connected")

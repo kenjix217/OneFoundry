@@ -144,7 +144,7 @@ def read_blob(
             raise RepositoryReadError("GitHub tree incomplete")
         matches = [entry for entry in entries if isinstance(entry, dict) and entry.get("path") == part]
         if len(matches) != 1:
-            raise RepositoryReadError("repository file unavailable")
+            raise RepositoryReadError("repository file unavailable", code="source_file_unreadable")
         entry = matches[0]
         object_id = _sha(entry.get("sha"))
         if index < len(parts) - 1:
@@ -156,9 +156,15 @@ def read_blob(
                 entry.get("mode") not in {"100644", "100755"}
                 or entry.get("type") != "blob"
                 or type(entry_size) is not int
-                or not 0 <= entry_size <= limit
+                or entry_size < 0
             ):
-                raise RepositoryReadError("repository file unsupported or too large")
+                raise RepositoryReadError(
+                    "repository file unsupported or too large", code="source_file_unreadable"
+                )
+            if entry_size > limit:
+                raise RepositoryReadError(
+                    "repository file exceeds the read limit", code="source_file_too_large"
+                )
             size = entry_size
     blob = get("blobs", object_id)
     content = blob.get("content")

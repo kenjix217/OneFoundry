@@ -11,6 +11,7 @@ from agents.testing import ModelStep, ScriptedModel, assistant_message
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 
+from onefoundry.gateway_errors import Unavailable
 from onefoundry.input_file_bytes import InputFileBytes
 from onefoundry.input_file_worker import process_one
 from onefoundry.main import create_app
@@ -189,6 +190,30 @@ def test_saved_long_message_fails_before_model_when_full_context_exceeds_budget(
             ).json()
             == receipt
         )
+        gateway.engine.dispose()
+
+
+def test_memory_timeout_before_model_settles_attempt_without_stale_sweep(
+    tmp_path: Path, quiet_worker: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    settings = settings_for(tmp_path)
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project, _ = project_with_models(client)
+        saved = command(client, project, "Prepare a local product brief.")
+
+        def unavailable_context(*_args: object, **_kwargs: object) -> None:
+            raise Unavailable("memory_embedding_timeout")
+
+        monkeypatch.setattr(TaskSessionContext, "prepare", unavailable_context)
+        gateway = ToolGateway(
+            create_engine(settings.database_url), "fixture-worker", live_text_settings=settings
+        )
+        result = _scripted_worker(gateway, settings, [ScriptedModel([])]).run_next(UUID(project))
+        assert result is not None and result["outcome"] == "failed"
+        view = client.get(f"/api/projects/{project}/work-orders/{saved['order_id']}/team-session").json()
+        assert view["attempts"][0]["status"] == "failed"
+        assert view["attempts"][0]["reason"] == "memory_embedding_timeout"
+        assert TaskSessionAttempts(gateway).expire_stale(settings.onefoundry_max_elapsed_seconds) == 0
         gateway.engine.dispose()
 
 

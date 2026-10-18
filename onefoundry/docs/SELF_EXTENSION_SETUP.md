@@ -48,3 +48,21 @@ configuration directory. SearXNG is a separate AGPL-3.0 service; its upstream
 [container setup](https://docs.searxng.org/admin/installation-docker.html) and
 [license](https://github.com/searxng/searxng/blob/master/LICENSE) remain applicable.
 Verify returned search results through `PublicWebClient` before marking it ready.
+
+For the installed private service, keep the digest-pinned Compose definition at
+`data/config/public-search/compose.json`, with operator-owned private `config`
+and `cache` directories alongside it. The updater accepts only the isolated
+search service: operator UID/GID, no published port, read-only configuration,
+restricted container privileges and the installed app's default network. It
+recreates that service after app-network creation and stops it before the app
+network is removed. Explicitly disabled public web access does not start search.
+Startup and doctor verify a bounded JSON search response from inside the app;
+check relevant results and page retrieval separately because upstream engines
+can fail or return poor results.
+
+On a fresh installation, leave the internal search endpoint unset until this
+private companion configuration has been provisioned, then set it and restart.
+Missing or invalid configured search stops startup before containers are started.
+When rolling back to a release older than 0.20.2, retain the newer verified
+operator command for subsequent stop/start operations; older launchers do not
+manage the separate search service.

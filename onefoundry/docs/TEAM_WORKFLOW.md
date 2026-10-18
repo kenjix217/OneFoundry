@@ -75,4 +75,21 @@ Artifact reports retain the full exact owner-read content, within the artifact o
 
 The assignment limit (8) bounds unfinished work, including blocked/input/approval waits. Satisfied or canceled assignments release capacity without deleting their history. Successive batches in the same plan get fresh synthesis causes, coalesced while pending. Delegation depth (2), admitted plan revisions (3), per-attempt limits, one provably safe retry, business-workflow usage/elapsed budgets and outbound approvals remain enforced. Unlimited task length does not grant unlimited spending. New work orders retain their existing legacy mode; team activation requires readiness and the worker flag, imports history, and queues no work until the operator sends or continues.
 
+The installed operator can change this existing capacity with
+`onefoundry config set TEAM_MAX_ASSIGNMENTS_PER_ORDER 16`, then restart to apply
+it. Valid values are 1–50. More capacity does not clear an unknown outcome or
+repair an unavailable tool. Known memory dependency failures during prompt
+preparation now settle as failed before any provider request; no reduced-memory
+fallback is used. Repository reads report safe reasons for protected content,
+unsupported or oversized files, changed revisions and unavailable accounts.
+Protected documents remain unavailable through whole-file and range reads.
+
+For a historical **Checking outcome** hold, inspect the exact child attempt and
+saved tool actions in the task conversation. Reconcile saved actions first. If
+no execution or approval remains pending and the result is still unverified,
+the operator may choose **Abandon unverified result**. This preserves the
+unknown history and permits separate work; it does not accept a result or replay
+an action. Continue with the confirmed evidence and ask Chief to retry or split
+the blocked assignment.
+
 Task and Manage refresh the work-order snapshot when execution readiness reports a changed status. Background completion and cancellation update the header and operator review controls without requiring a page reload.

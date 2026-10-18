@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import stat
 import tempfile
 from collections.abc import Collection
 from dataclasses import dataclass
@@ -22,6 +23,9 @@ SETTINGS = {
     "APP_PORT": Setting("Loopback port for the OneFoundry app", 1, 65535),
     "MAILPIT_UI_PORT": Setting("Loopback port for the local mail preview", 1, 65535),
     "RUNNER_WALL_SECONDS": Setting("Maximum external runner job duration in seconds", 1, 60),
+    "TEAM_MAX_ASSIGNMENTS_PER_ORDER": Setting(
+        "Maximum unfinished team assignments per root work order", 1, 50
+    ),
 }
 LINE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=")
 
@@ -113,3 +117,106 @@ def set_value(path: Path, name: str, value: str) -> dict[str, object]:
 
 def output(data: dict[str, object]) -> None:
     print(json.dumps(data, sort_keys=True))
+
+
+def installed_search_endpoint(home: Path) -> str | None:
+    """Read Compose-style quoted or bare endpoint from the private installed environment."""
+    return _installed_value(home, "PUBLIC_WEB_SEARCH_ENDPOINT")
+
+
+def _installed_value(home: Path, name: str) -> str | None:
+    raw = configured_values(home / "data/config/.env", (name,))[name]
+    if raw is None:
+        return None
+    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in {"'", '"'}:
+        return raw[1:-1]
+    return raw
+
+
+INTERNAL_SEARCH_ENDPOINT = "http://searxng:8080/search"
+
+
+def public_search_enabled(home: Path) -> bool:
+    value = _installed_value(home, "PUBLIC_WEB_ENABLED")
+    if value is None:
+        return True
+    normalized = value.strip().lower()
+    if normalized in {"true", "1", "yes", "on"}:
+        return True
+    if normalized in {"false", "0", "no", "off"}:
+        return False
+    raise ValueError("installed PUBLIC_WEB_ENABLED must be a boolean")
+
+
+def private_search_compose(home: Path, project: str) -> Path | None:
+    """Accept only the operator's pinned, isolated SearXNG service."""
+    path = home / "data/config/public-search/compose.json"
+    if not path.exists() and not path.is_symlink():
+        if public_search_enabled(home) and installed_search_endpoint(home) == INTERNAL_SEARCH_ENDPOINT:
+            raise ValueError("internal public search requires private public-search/compose.json")
+        return None
+    info = path.lstat()
+    if (
+        not stat.S_ISREG(info.st_mode)
+        or info.st_uid != os.getuid()
+        or stat.S_IMODE(info.st_mode) != 0o600
+        or info.st_size > 8192
+    ):
+        raise ValueError("private public search Compose must be an owned mode-0600 regular file")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        service = value["services"]["search"]
+        image = service["image"]
+        config_dir = home / "data/config/public-search"
+        directory_info = config_dir.lstat()
+        if (
+            not stat.S_ISDIR(directory_info.st_mode)
+            or directory_info.st_uid != os.getuid()
+            or stat.S_IMODE(directory_info.st_mode) & 0o077
+            or config_dir.resolve() != config_dir
+        ):
+            raise ValueError
+        expected = {
+            "services": {
+                "search": {
+                    "image": image,
+                    "user": f"{os.getuid()}:{os.getgid()}",
+                    "read_only": True,
+                    "cap_drop": ["ALL"],
+                    "security_opt": ["no-new-privileges:true"],
+                    "restart": "unless-stopped",
+                    "environment": {"FORCE_OWNERSHIP": "false"},
+                    "tmpfs": ["/tmp:size=64m,mode=1777"],  # noqa: S108 - container-only scratch mount
+                    "volumes": [
+                        {
+                            "type": "bind",
+                            "source": str(config_dir / "config"),
+                            "target": "/etc/searxng",
+                            "read_only": True,
+                        },
+                        {"type": "bind", "source": str(config_dir / "cache"), "target": "/var/cache/searxng"},
+                    ],
+                    "networks": {"app": {"aliases": ["searxng"]}},
+                }
+            },
+            "networks": {"app": {"external": True, "name": f"{project}_default"}},
+        }
+        if (
+            value != expected
+            or not isinstance(image, str)
+            or not re.fullmatch(r"searxng/searxng@sha256:[0-9a-f]{64}", image)
+        ):
+            raise ValueError
+        for name in ("config", "cache"):
+            folder_info = (config_dir / name).lstat()
+            if (
+                not stat.S_ISDIR(folder_info.st_mode)
+                or folder_info.st_uid != os.getuid()
+                or stat.S_IMODE(folder_info.st_mode) & 0o077
+            ):
+                raise ValueError
+    except (OSError, UnicodeError, ValueError, TypeError, KeyError):
+        raise ValueError(
+            "private public search Compose permits only the pinned isolated search service"
+        ) from None
+    return path

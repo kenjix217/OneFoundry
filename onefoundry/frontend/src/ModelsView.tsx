@@ -6,10 +6,26 @@ import {
   replaceModelCredential, listModelProviders, type CatalogModel, type ModelAccount, type ModelProvider,
   type ProviderDescriptor, startCodexConnection, finishCodexConnection, getCodexChallenge, type CodexChallenge,
   startGrokConnection, finishGrokConnection, getGrokChallenge, restartCodexConnection, restartGrokConnection,
-  reconnectGrokConnection,
+  reconnectGrokConnection, reconnectCodexConnection,
 } from './modelApi';
 
 const CATEGORIES = ['text', 'image', 'audio', 'embedding', 'realtime', 'other'];
+
+function codexNeedsReconnect(account: ModelAccount): boolean {
+  return account.provider === 'openai_codex_runtime' &&
+    ['expired', 'reconnect_required'].includes(account.connection_status ?? '');
+}
+
+function connectionLabel(account: ModelAccount): string {
+  if (codexNeedsReconnect(account)) return 'Reconnect required';
+  if (account.provider === 'openai_codex_runtime' && account.connection_status) {
+    return account.connection_status === 'connected' ? 'Connected' : account.connection_status === 'login_expired'
+      ? 'Sign-in code expired' : account.connection_status === 'login_incomplete' ? 'Complete login' : 'Sign-in pending';
+  }
+  return account.auth_kind === 'none' ? 'Keyless local' : account.auth_kind === 'account_runtime'
+    ? account.credential_present ? account.provider === 'openai_codex_runtime' ? 'Device signed in' : 'Connected' : 'Sign-in pending'
+    : account.credential_present ? 'Key stored' : 'Key missing';
+}
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : 'An unexpected error occurred. Check saved state before retrying.';
@@ -61,7 +77,7 @@ export function ModelsView({ projectId }: {projectId: string}) {
 
   useEffect(() => {
     if (loading || busy !== null || codexChallenge) return;
-    const pending = accounts.filter((account) => account.auth_kind === 'account_runtime' && !account.credential_present);
+    const pending = accounts.filter((account) => account.auth_kind === 'account_runtime' && !account.credential_present && !codexNeedsReconnect(account));
     if (pending.length === 0) return;
     let cancelled = false;
     const resume = async () => {
@@ -226,6 +242,35 @@ export function ModelsView({ projectId }: {projectId: string}) {
     finally { setBusy(null); }
   }
 
+  async function reconnectCodex(account: ModelAccount) {
+    setBusy(account.id); setError(null); setNotice(null); setCodexChallenge(null);
+    try {
+      const challenge = await reconnectCodexConnection(projectId, account.id);
+      setCodexChallenge(challenge);
+      await load();
+      setNotice(`Use the sign-in code in ${account.label}'s card to reconnect. Your agents keep this account.`);
+    } catch (failure) { setError(errorMessage(failure)); }
+    finally { setBusy(null); }
+  }
+
+  async function completeCodex(account: ModelAccount) {
+    setBusy(account.id); setError(null); setNotice(null);
+    try {
+      await finishCodexConnection(projectId, account.id);
+      setCodexChallenge(null);
+      await load();
+      setNotice('Codex account connected. Discover models to refresh the available model choices.');
+    } catch (failure) { setError(errorMessage(failure)); }
+    finally { setBusy(null); }
+  }
+
+  async function refreshStatus(account: ModelAccount) {
+    setBusy(account.id); setError(null); setNotice(null);
+    try { await load(); }
+    catch (failure) { setError(errorMessage(failure)); }
+    finally { setBusy(null); }
+  }
+
   async function completeSavedGrok(account: ModelAccount) {
     setBusy(account.id); setError(null); setNotice(null);
     try {
@@ -327,7 +372,8 @@ export function ModelsView({ projectId }: {projectId: string}) {
         {accounts.length === 0 ? <p className="quiet-note">No model connections yet. Add one above, then click Discover models. Discovery makes a provider request only when you click that button.</p> :
           <div className="model-accounts">{accounts.map((account) => <article className="model-account" key={account.id}>
             <div className="model-account-head"><div><small>{providerName(account.provider)} · {account.auth_kind === 'none' ? 'Local endpoint' : account.auth_kind === 'account_runtime' ? account.provider === 'xai' ? 'xAI account' : 'ChatGPT account' : 'API key'}</small><h3>{account.label}</h3></div>
-              <span className={`status-chip ${account.auth_kind === 'none' || account.credential_present ? 'status-soft' : 'status-muted'}`}>{account.auth_kind === 'none' ? 'Keyless local' : account.auth_kind === 'account_runtime' ? account.credential_present ? account.provider === 'openai_codex_runtime' ? 'Device signed in' : 'Connected' : 'Sign-in pending' : account.credential_present ? 'Key stored' : 'Key missing'}</span></div>
+              <span className={`status-chip ${codexNeedsReconnect(account) ? 'status-muted' : account.auth_kind === 'none' || account.credential_present ? 'status-soft' : 'status-muted'}`}>{connectionLabel(account)}</span></div>
+            {codexNeedsReconnect(account) && <p className="form-error" role="alert">{account.connection_status === 'expired' ? 'Codex login expired.' : 'Codex login needs to be renewed.'} Reconnect this account to restore AI requests. Your agent assignments are retained.</p>}
             {account.endpoint && <p>Endpoint: {account.endpoint}</p>}
             <p>{providers.find((entry) => entry.id === account.provider)?.text_runtime_available
               ? (['openai', 'grok', 'ollama', 'openai_codex_runtime', 'xai', 'anthropic', 'gemini'].includes(account.provider) ? 'Text task path implemented · live generation unverified' : 'Compatible text adapter · live generation unverified')
@@ -336,12 +382,17 @@ export function ModelsView({ projectId }: {projectId: string}) {
             {account.provider === 'openai_codex_runtime' && account.credential_present && <p className="field-hint">Device sign-in and model discovery do not confirm subscription inference access. Review the saved inference diagnostic before starting another attempt.</p>}
             {codexChallenge?.account.id === account.id && <div className="model-inline-form" role="status"><p>Open <a href={codexChallenge.verification_url} target="_blank" rel="noreferrer">{account.provider === 'xai' ? 'xAI Grok' : 'OpenAI Codex'} sign-in</a> and enter code <strong>{codexChallenge.user_code}</strong>. This account connects automatically after verification. This code expires at {new Date(codexChallenge.expires_at * 1000).toLocaleTimeString()}.</p></div>}
             <div className="model-account-actions">
-              {account.auth_kind === 'account_runtime' && !account.credential_present && <>
+              {account.auth_kind === 'account_runtime' && !account.credential_present && !codexNeedsReconnect(account) && <>
                 <button className="button button-outline" type="button" disabled={busy !== null} onClick={() => { void showAccountCode(account); }}>Show sign-in code</button>
                 <button className="button button-outline" type="button" disabled={busy !== null} onClick={() => { void restartAccount(account); }}>Start fresh sign-in</button>
                 {account.id === savedGrokAccount && <button className="button button-outline" type="button" disabled={busy !== null} onClick={() => { void completeSavedGrok(account); }}>Complete saved sign-in</button>}
               </>}
               {account.provider === 'xai' && account.credential_present && <button className="button button-outline" type="button" disabled={busy !== null} onClick={() => { void reconnectGrok(account); }}>Sign in again</button>}
+              {account.provider === 'openai_codex_runtime' && <>
+                <button className="button button-primary" type="button" disabled={busy !== null} onClick={() => { void reconnectCodex(account); }}>Reconnect account</button>
+                <button className="button button-outline" type="button" disabled={busy !== null || !['pending', 'login_incomplete'].includes(account.connection_status ?? '') && codexChallenge?.account.id !== account.id} onClick={() => { void completeCodex(account); }}>Complete login</button>
+                <button className="button button-outline" type="button" disabled={busy !== null} onClick={() => { void refreshStatus(account); }}>Refresh status</button>
+              </>}
               <button className="button button-outline" type="button" disabled={busy !== null || account.auth_kind !== 'none' && !account.credential_present} onClick={() => { void discover(account); }}>{busy === account.id ? 'Working…' : 'Discover models'}</button>
               {account.auth_kind === 'api_key' && <button className="button button-quiet" type="button" disabled={busy !== null} onClick={() => { setChanging(changing === account.id ? null : account.id); setRemoving(null); }}>Replace key</button>}
               <button className="button button-quiet" type="button" disabled={busy !== null} onClick={() => { setRemoving(removing === account.id ? null : account.id); setChanging(null); }}>Remove account</button>

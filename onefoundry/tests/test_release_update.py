@@ -14,7 +14,7 @@ from urllib.request import ProxyHandler
 
 import pytest
 
-from scripts import onefoundry_update, release_bundle
+from scripts import onefoundry_update, operator_config, release_bundle
 
 
 def memory_asset_overlay(home: Path) -> Path:
@@ -182,7 +182,11 @@ def test_compose_retains_installed_memory_mounts_and_env_precedence(
 
 
 def release_archive(
-    tmp_path: Path, *, extra: str | None = None, legacy: bool = False, licensed: bool = True
+    tmp_path: Path,
+    *,
+    extra: str | None = None,
+    legacy: bool = False,
+    licensed: bool = True,
 ) -> tuple[Path, str]:
     bundle = tmp_path / "bundle"
     bundle.mkdir(parents=True)
@@ -290,6 +294,9 @@ def test_new_operator_can_read_previous_release_bundle(tmp_path: Path) -> None:
     assert manifest["version"] == "0.1.0"
     archive, digest = release_archive(tmp_path / "operator", licensed=False)
     manifest = onefoundry_update.unpack(archive, digest, tmp_path / "previous-operator")
+    assert manifest["version"] == "0.1.0"
+    archive, digest = release_archive(tmp_path / "licensed-operator")
+    manifest = onefoundry_update.unpack(archive, digest, tmp_path / "previous-licensed-operator")
     assert manifest["version"] == "0.1.0"
 
 
@@ -417,9 +424,15 @@ def test_compose_uses_private_env_instead_of_ambient_override(
     home = tmp_path / "home"
     config_dir = home / "data/config"
     config_dir.mkdir(parents=True)
-    (config_dir / ".env").write_text("DB_PASSWORD=private\nAPP_PORT=18888\n", encoding="utf-8")
+    (config_dir / ".env").write_text(
+        "DB_PASSWORD=private\nAPP_PORT=18888\n"
+        "PUBLIC_WEB_SEARCH_ENDPOINT=https://search.example.org/search\nPUBLIC_WEB_ENABLED=true\n",
+        encoding="utf-8",
+    )
     monkeypatch.setenv("DB_PASSWORD", "ambient")
     monkeypatch.setenv("APP_PORT", "9999")
+    monkeypatch.setenv("PUBLIC_WEB_SEARCH_ENDPOINT", "http://searxng:8080/search")
+    monkeypatch.setenv("PUBLIC_WEB_ENABLED", "false")
     monkeypatch.setenv("COMPOSE_PROFILES", "local-model")
     monkeypatch.setattr(
         onefoundry_update,
@@ -438,6 +451,8 @@ def test_compose_uses_private_env_instead_of_ambient_override(
     assert isinstance(actual_env, dict)
     assert "DB_PASSWORD" not in actual_env
     assert "APP_PORT" not in actual_env
+    assert "PUBLIC_WEB_SEARCH_ENDPOINT" not in actual_env
+    assert "PUBLIC_WEB_ENABLED" not in actual_env
     assert "COMPOSE_PROFILES" not in actual_env
     assert actual_env["ONEFOUNDRY_RUNTIME_IMAGE"] == "localhost/onefoundry-runtime:v0.1.0"
     actual_command = observed["command"]
@@ -445,7 +460,36 @@ def test_compose_uses_private_env_instead_of_ambient_override(
     assert "--env-file" in actual_command
 
 
+def test_compose_ignores_ambient_public_search_when_installed_keys_are_absent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    config_dir = home / "data/config"
+    config_dir.mkdir(parents=True)
+    (config_dir / ".env").write_text("DB_PASSWORD=fixture\n", encoding="utf-8")
+    monkeypatch.setenv("PUBLIC_WEB_SEARCH_ENDPOINT", "http://searxng:8080/search")
+    monkeypatch.setenv("PUBLIC_WEB_ENABLED", "false")
+    monkeypatch.setattr(
+        onefoundry_update,
+        "validate_manifest",
+        lambda _release: {"images": release_bundle.image_refs("0.1.0")},
+    )
+    captured: dict[str, str] = {}
+
+    def fake_run(*_command: str, env: dict[str, str], **_kwargs: object) -> str:
+        captured.update(env)
+        return ""
+
+    monkeypatch.setattr(onefoundry_update, "run", fake_run)
+    onefoundry_update.compose(home, tmp_path / "release", "pilot", "config", "--services")
+    assert "PUBLIC_WEB_SEARCH_ENDPOINT" not in captured
+    assert "PUBLIC_WEB_ENABLED" not in captured
+
+
 def test_readiness_probe_uses_direct_loopback_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config = tmp_path / "data/config"
+    config.mkdir(parents=True)
+    (config / ".env").write_text("PUBLIC_WEB_SEARCH_ENDPOINT=\n", encoding="utf-8")
     monkeypatch.setattr(onefoundry_update, "compose", lambda *_args, **_kwargs: "127.0.0.1:8765")
     observed: dict[str, object] = {}
 
@@ -477,3 +521,173 @@ def test_health_timeout_setting_accepts_bounds_and_rejects_invalid() -> None:
     for value in ("0", "601", "bad"):
         with pytest.raises(ArgumentTypeError):
             onefoundry_update.health_timeout_seconds(value)
+
+
+def private_search_fixture(home: Path, project: str = "pilot") -> Path:
+    directory = home / "data/config/public-search"
+    directory.mkdir(parents=True)
+    directory.chmod(0o700)
+    (directory.parent / ".env").write_text(
+        "PUBLIC_WEB_SEARCH_ENDPOINT=http://searxng:8080/search\n", encoding="utf-8"
+    )
+    for name in ("config", "cache"):
+        (directory / name).mkdir()
+        (directory / name).chmod(0o700)
+    service = {
+        "image": "searxng/searxng@sha256:" + "a" * 64,
+        "user": f"{os.getuid()}:{os.getgid()}",
+        "read_only": True,
+        "cap_drop": ["ALL"],
+        "security_opt": ["no-new-privileges:true"],
+        "restart": "unless-stopped",
+        "environment": {"FORCE_OWNERSHIP": "false"},
+        "tmpfs": ["/tmp:size=64m,mode=1777"],  # noqa: S108 - container-only scratch mount
+        "volumes": [
+            {
+                "type": "bind",
+                "source": str(directory / "config"),
+                "target": "/etc/searxng",
+                "read_only": True,
+            },
+            {"type": "bind", "source": str(directory / "cache"), "target": "/var/cache/searxng"},
+        ],
+        "networks": {"app": {"aliases": ["searxng"]}},
+    }
+    path = directory / "compose.json"
+    path.write_text(
+        json.dumps(
+            {
+                "services": {"search": service},
+                "networks": {"app": {"external": True, "name": f"{project}_default"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    path.chmod(0o600)
+    return path
+
+
+def test_private_search_fails_closed_on_missing_or_unsafe_configuration(tmp_path: Path) -> None:
+    config = tmp_path / "data/config"
+    config.mkdir(parents=True)
+    (config / ".env").write_text("PUBLIC_WEB_SEARCH_ENDPOINT=http://searxng:8080/search\n")
+    with pytest.raises(ValueError, match="requires private"):
+        operator_config.private_search_compose(tmp_path, "pilot")
+    (config / ".env").write_text("PUBLIC_WEB_SEARCH_ENDPOINT=https://search.example.org/search\n")
+    assert operator_config.private_search_compose(tmp_path, "pilot") is None
+    (config / ".env").write_text(
+        'PUBLIC_WEB_SEARCH_ENDPOINT="http://searxng:8080/search"\nPUBLIC_WEB_ENABLED=false\n'
+    )
+    assert operator_config.private_search_compose(tmp_path, "pilot") is None
+    assert not operator_config.public_search_enabled(tmp_path)
+    (config / ".env").write_text(
+        'PUBLIC_WEB_SEARCH_ENDPOINT="http://searxng:8080/search"\nPUBLIC_WEB_ENABLED=true\n'
+    )
+    with pytest.raises(ValueError, match="requires private"):
+        operator_config.private_search_compose(tmp_path, "pilot")
+    path = private_search_fixture(tmp_path)
+    assert operator_config.private_search_compose(tmp_path, "pilot") == path
+    valid = json.loads(path.read_text())
+    for key, value in (("ports", ["8080:8080"]), ("privileged", True), ("network_mode", "host")):
+        altered = json.loads(json.dumps(valid))
+        altered["services"]["search"][key] = value
+        path.write_text(json.dumps(altered))
+        with pytest.raises(ValueError, match="permits only"):
+            operator_config.private_search_compose(tmp_path, "pilot")
+    path.write_text(json.dumps(valid))
+    altered = json.loads(json.dumps(valid))
+    altered["networks"]["app"]["name"] = "another_default"
+    path.write_text(json.dumps(altered))
+    with pytest.raises(ValueError, match="permits only"):
+        operator_config.private_search_compose(tmp_path, "pilot")
+    path.write_text(json.dumps(valid))
+    path.chmod(0o644)
+    with pytest.raises(ValueError, match="mode-0600"):
+        operator_config.private_search_compose(tmp_path, "pilot")
+
+
+def test_compose_recreates_private_search_after_app_network_and_stops_it_before_down(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = private_search_fixture(tmp_path)
+    monkeypatch.setattr(
+        onefoundry_update,
+        "validate_manifest",
+        lambda _path: {"images": {"runtime": "r", "runner": "c", "input-worker": "w"}},
+    )
+    calls: list[tuple[str, ...]] = []
+
+    def collect(*args: str, **_kwargs: object) -> str:
+        calls.append(args)
+        return ""
+
+    monkeypatch.setattr(onefoundry_update, "run", collect)
+    release = tmp_path / "release"
+    onefoundry_update.compose(tmp_path, release, "pilot", "up", "-d")
+    up_calls = list(calls)
+    assert up_calls[0][-2:] == ("up", "-d")
+    assert up_calls[1] == (
+        "docker",
+        "compose",
+        "-p",
+        "pilot-public-search",
+        "-f",
+        str(path),
+        "up",
+        "-d",
+        "--no-build",
+        "--pull",
+        "never",
+        "--force-recreate",
+    )
+    calls.clear()
+    onefoundry_update.compose(tmp_path, release, "pilot", "down")
+    assert calls[0][-1] == "down" and calls[0][3] == "pilot-public-search"
+    assert calls[1][-1] == "down"
+
+
+def test_compose_preflights_missing_internal_search_before_app_start(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = tmp_path / "data/config"
+    config.mkdir(parents=True)
+    (config / ".env").write_text("PUBLIC_WEB_SEARCH_ENDPOINT='http://searxng:8080/search'\n")
+    monkeypatch.setattr(
+        onefoundry_update,
+        "validate_manifest",
+        lambda _path: {"images": {"runtime": "r", "runner": "c", "input-worker": "w"}},
+    )
+    calls: list[tuple[str, ...]] = []
+
+    def collect(*args: str, **_kwargs: object) -> str:
+        calls.append(args)
+        return ""
+
+    monkeypatch.setattr(onefoundry_update, "run", collect)
+    with pytest.raises(ValueError, match="requires private"):
+        onefoundry_update.compose(tmp_path, tmp_path / "release", "pilot", "up", "-d")
+    assert calls == []
+
+
+def test_internal_search_readiness_checks_network_from_app(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    private_search_fixture(tmp_path)
+    calls: list[tuple[str, ...]] = []
+
+    def fake_compose(_home: Path, _release: Path, _project: str, *args: str, **_kwargs: object) -> str:
+        calls.append(args)
+        return "127.0.0.1:8765" if args[0] == "port" else ""
+
+    class Ready(io.BytesIO):
+        status = 200
+
+    monkeypatch.setattr(onefoundry_update, "compose", fake_compose)
+    monkeypatch.setattr(
+        urllib.request,
+        "build_opener",
+        lambda _handler: SimpleNamespace(open=lambda _url, *, timeout: Ready(b'{"status":"ready"}')),
+    )
+    onefoundry_update.health(tmp_path, tmp_path, "pilot", timeout=1)
+    assert calls[1][:5] == ("exec", "-T", "app", "python", "-c")
+    assert "PublicWebClient().search" in calls[1][5]

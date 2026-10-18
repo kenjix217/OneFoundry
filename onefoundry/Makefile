@@ -10,6 +10,7 @@ check:
 	$(UV) run --locked pytest -q tests/test_git_hygiene.py tests/test_install_gitleaks.py
 	$(UV) run --locked pytest -q tests/test_repository_failure_evidence.py -m "not integration"
 	$(UV) run --locked pytest -q tests/test_repository_source_safety.py
+	$(UV) run --locked pytest -q tests/test_codex_connection_status.py
 	$(UV) run --locked pytest -q tests/test_repository_read_extensions.py tests/test_team_workflow_admission.py
 	$(UV) run --locked pytest -q tests/test_repository_provider_response.py tests/test_repository_overload_recovery.py
 	$(UV) run --locked pytest -q tests/test_capability_setup_host.py tests/test_repository_subscription.py tests/test_repository_github.py tests/test_extension_release_prepare.py tests/test_extension_source_checkout.py tests/test_maintenance_transport_config.py

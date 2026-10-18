@@ -83,7 +83,7 @@ def read(
 ) -> bytes:
     binding = _binding(store, project_id, source_id)
     if binding["revision"] != revision:
-        raise RepositoryReadError("GitHub source revision changed")
+        raise RepositoryReadError("GitHub source revision changed", code="source_revision_drifted")
     try:
         credential = store._credential(project_id, UUID(str(binding["account_id"])))
     except (SecretStoreError, NotFound):
@@ -98,11 +98,15 @@ def read(
         limit=limit,
         deadline=deadline,
     )
-    if _binding(store, project_id, source_id) != binding:
-        raise RepositoryReadError("GitHub source or account changed during read")
+    current = _binding(store, project_id, source_id)
+    if current != binding:
+        code = (
+            "source_revision_drifted" if current["revision"] != binding["revision"] else "source_unavailable"
+        )
+        raise RepositoryReadError("GitHub source or account changed during read", code=code)
     try:
         if store._credential(project_id, UUID(str(binding["account_id"]))) != credential:
-            raise RepositoryReadError("GitHub account changed during read")
+            raise RepositoryReadError("GitHub account changed during read", code="source_account_unavailable")
     except (SecretStoreError, NotFound):
         raise RepositoryReadError("GitHub account unavailable", code="source_account_unavailable") from None
     return data

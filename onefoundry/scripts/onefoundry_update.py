@@ -18,6 +18,13 @@ import urllib.request
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from scripts.operator_config import (
+    INTERNAL_SEARCH_ENDPOINT,
+    configured_values,
+    installed_search_endpoint,
+    private_search_compose,
+    public_search_enabled,
+)
 from scripts.release_bundle import BASE_IMAGES, LEGACY_FILES, sha256, validate_manifest
 
 RELEASE_FILES = frozenset(
@@ -145,6 +152,41 @@ def configured_env_names(path: Path) -> set[str]:
     return names
 
 
+def start_private_search(home: Path, project: str) -> None:
+    path = private_search_compose(home, project)
+    if (
+        path is not None
+        and public_search_enabled(home)
+        and installed_search_endpoint(home) == INTERNAL_SEARCH_ENDPOINT
+    ):
+        # Compose recreates the container to attach it to the app's current network.
+        run(
+            "docker",
+            "compose",
+            "-p",
+            f"{project}-public-search",
+            "-f",
+            str(path),
+            "up",
+            "-d",
+            "--no-build",
+            "--pull",
+            "never",
+            "--force-recreate",
+        )
+
+
+def stop_private_search(home: Path, project: str) -> None:
+    path = private_search_compose(home, project)
+    if path is not None:
+        run("docker", "compose", "-p", f"{project}-public-search", "-f", str(path), "down")
+
+
+def needs_private_search_health(home: Path, project: str) -> bool:
+    private_search_compose(home, project)
+    return public_search_enabled(home) and installed_search_endpoint(home) == INTERNAL_SEARCH_ENDPOINT
+
+
 def memory_assets_override(home: Path) -> list[str]:
     """Retain only the operator's two read-only embedding binds across restarts."""
     path = home / "data/config/memory-assets.compose.json"
@@ -184,8 +226,6 @@ def local_sources_override(home: Path) -> list[str]:
         or info.st_size > 4096
     ):
         raise ValueError("installed local source override must be an owned private regular file")
-    from scripts.operator_config import configured_values
-
     root = configured_values(home / "data/config/.env", ("LOCAL_SOURCE_ROOT",))["LOCAL_SOURCE_ROOT"] or ""
     if (
         not root.startswith("/")
@@ -316,6 +356,8 @@ def compose(
     env.pop("COMPOSE_PROFILES", None)
     # Use the installed value or packaged default, regardless of the caller's shell.
     env.pop("TEAM_REPOSITORY_READ_ENABLED", None)
+    env.pop("PUBLIC_WEB_SEARCH_ENDPOINT", None)
+    env.pop("PUBLIC_WEB_ENABLED", None)
     env.update(
         {
             "ONEFOUNDRY_RUNTIME_IMAGE": refs["runtime"],
@@ -323,7 +365,11 @@ def compose(
             "ONEFOUNDRY_INPUT_WORKER_IMAGE": refs["input-worker"],
         }
     )
-    return run(
+    if arguments and arguments[0] == "up":
+        private_search_compose(home, project)
+    if arguments and arguments[0] == "down":
+        stop_private_search(home, project)
+    result = run(
         "docker",
         "compose",
         "--env-file",
@@ -342,6 +388,9 @@ def compose(
         capture=capture,
         timeout=timeout,
     )
+    if arguments and arguments[0] == "up":
+        start_private_search(home, project)
+    return result
 
 
 def verify_loaded_images(release: Path) -> None:
@@ -389,14 +438,41 @@ def health(home: Path, release: Path, project: str, timeout: float) -> None:
     url = f"http://{loopback}:{int(port)}/health/ready"
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     last_error = "not ready"
+    search_required = needs_private_search_health(home, project)
     while time.monotonic() < deadline:
         try:
             with opener.open(url, timeout=2) as response:
                 payload = json.load(response)
                 if response.status == 200 and payload.get("status") == "ready":
+                    if not search_required:
+                        return
+                    compose(
+                        home,
+                        release,
+                        project,
+                        "exec",
+                        "-T",
+                        "app",
+                        "python",
+                        "-c",
+                        "from onefoundry.public_web_client import PublicWebClient\n"
+                        "from onefoundry.settings import Settings\n"
+                        "s = Settings()\n"
+                        "result = PublicWebClient().search("
+                        "'OneFoundry public search readiness', s.public_web_search_endpoint, "
+                        "1, s.public_web_timeout_seconds, s.public_web_max_response_bytes)\n"
+                        "if not result['results']: raise RuntimeError('public search returned no results')\n",
+                        timeout=min(20, max(1, deadline - time.monotonic())),
+                    )
                     return
                 last_error = f"readiness returned {payload}"
-        except (OSError, ValueError, urllib.error.URLError) as error:
+        except (
+            OSError,
+            ValueError,
+            urllib.error.URLError,
+            subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
+        ) as error:
             last_error = str(error)
         time.sleep(1)
     raise RuntimeError(f"OneFoundry readiness failed: {last_error}")
