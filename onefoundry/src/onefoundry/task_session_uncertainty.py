@@ -135,8 +135,11 @@ def acknowledge(
             raise Conflict("only an unknown outcome can be acknowledged")
         busy = connection.scalar(
             text(
-                "SELECT 1 FROM task_session_attempts WHERE project_id=:p AND root_work_order_id=:root "
-                "AND status IN ('queued','running') LIMIT 1"
+                "SELECT 1 FROM task_session_attempts a JOIN task_sessions s "
+                "ON s.project_id=a.project_id AND s.id=a.session_id "
+                "WHERE a.project_id=:p AND a.root_work_order_id=:root "
+                "AND (a.status='running' OR (a.status='queued' "
+                "AND (s.kind<>'child' OR a.started_at IS NOT NULL))) LIMIT 1"
             ),
             {"p": project_id, "root": scope["root_work_order_id"]},
         )
@@ -149,9 +152,11 @@ def acknowledge(
         )
         pending = connection.scalar(
             text(
-                "SELECT 1 FROM approval_requests a JOIN work_orders w ON w.project_id=a.project_id "
-                "AND w.id=a.work_order_id WHERE a.project_id=:p AND a.status='pending' "
-                "AND (w.id=:root OR w.parent_work_order_id=:root) LIMIT 1"
+                "WITH RECURSIVE descendants AS (SELECT id FROM work_orders "
+                "WHERE project_id=:p AND id=:root UNION ALL SELECT w.id FROM work_orders w "
+                "JOIN descendants d ON w.parent_work_order_id=d.id WHERE w.project_id=:p) "
+                "SELECT 1 FROM approval_requests a JOIN descendants d ON d.id=a.work_order_id "
+                "WHERE a.project_id=:p AND a.status='pending' LIMIT 1"
             ),
             {"p": project_id, "root": scope["root_work_order_id"]},
         )

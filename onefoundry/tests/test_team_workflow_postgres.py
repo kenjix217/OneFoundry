@@ -17,6 +17,7 @@ from agents.testing import ModelStep, ScriptedModel, assistant_message, function
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 
+from onefoundry.gateway_errors import Conflict
 from onefoundry.main import create_app
 from onefoundry.model_providers import DiscoveredModel
 from onefoundry.profile_text_runtime import ProfileTextRuntime
@@ -26,6 +27,7 @@ from onefoundry.task_session_attempts import TaskSessionAttempts
 from onefoundry.task_session_decisions import TaskSessionDecisions
 from onefoundry.task_session_sdk_turn import TaskSessionSdkTurn, TeamModel
 from onefoundry.task_session_tools import TaskSessionTools
+from onefoundry.task_session_uncertainty import UnknownAcknowledgement, acknowledge
 from onefoundry.tool_gateway import ToolGateway
 
 ORIGIN = {"origin": "http://localhost:8765"}
@@ -809,6 +811,237 @@ def test_unknown_acknowledgement_is_scoped_and_preserves_immutable_attempt(tmp_p
             == 200
         )
         assert client.get(base).json()["attempts"][0]["status"] == "unknown"
+        gateway.engine.dispose()
+
+
+@pytest.mark.parametrize("child_running", [False, True])
+def test_unknown_chief_can_be_acknowledged_while_child_remains_queued(
+    tmp_path: Path, child_running: bool
+) -> None:
+    settings = settings_for(tmp_path)
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project, _oid, profiles, base = activate_fixture(client)
+        assert (
+            client.post(
+                f"{base}/continue", json={"client_attempt_id": str(uuid4())}, headers=ORIGIN
+            ).status_code
+            == 202
+        )
+        gateway = ToolGateway(
+            create_engine(settings.database_url), settings.operator_actor_id, live_text_settings=settings
+        )
+        attempts = TaskSessionAttempts(gateway)
+        chief = attempts.claim_next(UUID(project))
+        assert chief is not None
+        assignment = TaskSessionAssignments(gateway).delegate(
+            UUID(project),
+            chief["session_id"],
+            chief["id"],
+            DelegateRequest(
+                client_action_id=uuid4(),
+                profile_id=UUID(profiles["GTM"]),
+                objective="Prepare launch draft",
+                expected_result="Source-backed draft",
+                acceptance_check="Keep unsupported facts unknown",
+            ),
+        )
+        child_id = str(assignment["child_session_id"])
+        child_before = client.get(f"{base}/sessions/{child_id}").json()["attempts"]
+        assert len(child_before) == 1 and child_before[0]["status"] == "queued"
+        attempts.settle(UUID(project), chief["id"], "unknown", reason="fixture_interrupted")
+        if child_running:
+            claimed_child = attempts.claim_next(UUID(project))
+            assert claimed_child is not None and str(claimed_child["session_id"]) == child_id
+        before = client.get(base).json()["attempts"][0]
+        path = f"{base}/sessions/{chief['session_id']}/attempts/{chief['id']}/acknowledge"
+        data = {
+            "client_action_id": str(uuid4()),
+            "decision": "abandon_unverified",
+            "reason": "Operator reviewed the uncertain Chief turn; continue queued draft separately.",
+        }
+        assert client.post(path.replace(project, str(uuid4())), json=data, headers=ORIGIN).status_code == 404
+        nonoperator = ToolGateway(
+            create_engine(settings.database_url), "fixture-agent", live_text_settings=settings
+        )
+        with pytest.raises(Conflict, match="only the operator"):
+            acknowledge(
+                nonoperator,
+                UUID(project),
+                UUID(_oid),
+                chief["session_id"],
+                chief["id"],
+                UnknownAcknowledgement.model_validate(data),
+            )
+        nonoperator.engine.dispose()
+        result = client.post(path, json=data, headers=ORIGIN)
+        if child_running:
+            assert result.status_code == 409, result.text
+            assert client.get(base).json()["attempts"][0]["unknown_acknowledged"] is False
+        else:
+            assert result.status_code == 200, result.text
+            assert client.post(path, json=data, headers=ORIGIN).status_code == 200
+            after = client.get(base).json()["attempts"][0]
+            assert after.pop("unknown_acknowledged") is True
+            before.pop("unknown_acknowledged")
+            assert after == before
+            assert client.get(f"{base}/sessions/{child_id}").json()["attempts"] == child_before
+            claimed_child = attempts.claim_next(UUID(project))
+            assert claimed_child is not None and str(claimed_child["session_id"]) == child_id
+        gateway.engine.dispose()
+
+
+def test_unknown_child_cannot_be_acknowledged_while_chief_decision_is_queued(
+    tmp_path: Path,
+) -> None:
+    settings = settings_for(tmp_path)
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project, oid, profiles, base = activate_fixture(client)
+        assert (
+            client.post(
+                f"{base}/continue", json={"client_attempt_id": str(uuid4())}, headers=ORIGIN
+            ).status_code
+            == 202
+        )
+        gateway = ToolGateway(
+            create_engine(settings.database_url), settings.operator_actor_id, live_text_settings=settings
+        )
+        attempts = TaskSessionAttempts(gateway)
+        chief = attempts.claim_next(UUID(project))
+        assert chief is not None
+        assignment = TaskSessionAssignments(gateway).delegate(
+            UUID(project),
+            chief["session_id"],
+            chief["id"],
+            DelegateRequest(
+                client_action_id=uuid4(),
+                profile_id=UUID(profiles["GTM"]),
+                objective="Prepare launch draft",
+                expected_result="Source-backed draft",
+                acceptance_check="Keep unsupported facts unknown",
+            ),
+        )
+        attempts.settle(UUID(project), chief["id"], "done", public_reply="Draft assigned.")
+        child = attempts.claim_next(UUID(project))
+        assert child is not None and child["session_id"] == assignment["child_session_id"]
+        attempts.settle(UUID(project), child["id"], "unknown", reason="fixture_interrupted")
+        dispatched = TaskSessionDecisions(gateway).dispatch_next(UUID(project))
+        assert dispatched is not None
+        main_attempts = client.get(base).json()["attempts"]
+        assert main_attempts[-1]["id"] == str(dispatched["attempt_id"])
+        assert main_attempts[-1]["status"] == "queued"
+        response = client.post(
+            f"{base}/sessions/{child['session_id']}/attempts/{child['id']}/acknowledge",
+            json={
+                "client_action_id": str(uuid4()),
+                "decision": "abandon_unverified",
+                "reason": "Review the pending Chief decision before abandoning this child turn.",
+            },
+            headers=ORIGIN,
+        )
+        assert response.status_code == 409, response.text
+        child_view = client.get(f"{base}/sessions/{child['session_id']}").json()
+        assert child_view["attempts"][-1]["unknown_acknowledged"] is False
+        assert client.get(base).json()["attempts"][-1]["status"] == "queued"
+        gateway.engine.dispose()
+
+
+@pytest.mark.parametrize("blocker", ["started_receipt", "pending_approval", "pending_nested_approval"])
+def test_unknown_acknowledgement_still_rejects_unresolved_effects(tmp_path: Path, blocker: str) -> None:
+    settings = settings_for(tmp_path)
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project, oid, profiles, base = activate_fixture(client)
+        assert (
+            client.post(
+                f"{base}/continue", json={"client_attempt_id": str(uuid4())}, headers=ORIGIN
+            ).status_code
+            == 202
+        )
+        gateway = ToolGateway(
+            create_engine(settings.database_url), settings.operator_actor_id, live_text_settings=settings
+        )
+        attempts = TaskSessionAttempts(gateway)
+        chief = attempts.claim_next(UUID(project))
+        assert chief is not None
+        attempts.settle(UUID(project), chief["id"], "unknown", reason="fixture_interrupted")
+        with gateway.engine.begin() as connection:
+            if blocker == "started_receipt":
+                connection.execute(
+                    text(
+                        "INSERT INTO task_session_tool_calls "
+                        "(id,project_id,actor_id,root_work_order_id,session_id,attempt_id,"
+                        "provider_call_id,tool_name,arguments_sha256) VALUES "
+                        "(:id,:p,:actor,:root,:session,:attempt,:call,:tool,:digest)"
+                    ),
+                    {
+                        "id": uuid4(),
+                        "p": UUID(project),
+                        "actor": settings.operator_actor_id,
+                        "root": UUID(oid),
+                        "session": chief["session_id"],
+                        "attempt": chief["id"],
+                        "call": "unconfirmed-provider-action",
+                        "tool": "onefoundry.publish_update",
+                        "digest": "0" * 64,
+                    },
+                )
+            else:
+                approval_order_id = UUID(oid)
+                if blocker == "pending_nested_approval":
+                    for _ in range(2):
+                        descendant_id = uuid4()
+                        connection.execute(
+                            text(
+                                "INSERT INTO work_orders (id,project_id,actor_id,title,instructions,"
+                                "profile_id,deliverable_kind,acceptance_checks,status,parent_work_order_id) "
+                                "SELECT :id,project_id,actor_id,title,instructions,profile_id,"
+                                "deliverable_kind,acceptance_checks,'ready',:parent FROM work_orders "
+                                "WHERE project_id=:p AND id=:parent"
+                            ),
+                            {"id": descendant_id, "p": UUID(project), "parent": approval_order_id},
+                        )
+                        approval_order_id = descendant_id
+                run_id = uuid4()
+                connection.execute(
+                    text(
+                        "INSERT INTO runs (id,project_id,actor_id,work_order_id,profile_id,"
+                        "status,mode) VALUES (:id,:p,:actor,:order,:profile,'running','manual_planning')"
+                    ),
+                    {
+                        "id": run_id,
+                        "p": UUID(project),
+                        "actor": settings.operator_actor_id,
+                        "order": approval_order_id,
+                        "profile": UUID(profiles["Chief of Staff"]),
+                    },
+                )
+                connection.execute(
+                    text(
+                        "INSERT INTO approval_requests "
+                        "(id,project_id,actor_id,work_order_id,run_id,action_type,target,"
+                        "content,proposal_digest,status) VALUES "
+                        "(:id,:p,:actor,:order,:run,'other','fixture action','Review pending effect',"
+                        ":digest,'pending')"
+                    ),
+                    {
+                        "id": uuid4(),
+                        "p": UUID(project),
+                        "actor": settings.operator_actor_id,
+                        "order": approval_order_id,
+                        "run": run_id,
+                        "digest": "0" * 64,
+                    },
+                )
+        response = client.post(
+            f"{base}/sessions/{chief['session_id']}/attempts/{chief['id']}/acknowledge",
+            json={
+                "client_action_id": str(uuid4()),
+                "decision": "abandon_unverified",
+                "reason": "Review pending effect before abandoning this uncertain turn.",
+            },
+            headers=ORIGIN,
+        )
+        assert response.status_code == 409, response.text
+        assert client.get(base).json()["attempts"][0]["unknown_acknowledged"] is False
         gateway.engine.dispose()
 
 

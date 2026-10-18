@@ -1,5 +1,11 @@
 # OneFoundry changelog
 
+## 0.21.2
+
+- Record a known rejection when a Chief action becomes unavailable during its turn, so stale retry, cancellation and completion calls do not create an uncertain outcome before dispatch.
+- Allow an explicit operator acknowledgement to preserve unstarted queued work. Running work, unresolved tool receipts and pending approvals continue to hold recovery.
+- Open blocked-agent reviews on the saved feedback, with the latest requested changes first and assignment context available in its own tab.
+
 ## 0.21.1
 
 - Separate Current work actions with wrapping, touch-sized buttons so Resume work and review controls stay readable on mobile. Preserve the same callbacks and disabled states.

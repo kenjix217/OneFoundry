@@ -233,6 +233,41 @@ it('shows the saved team blocker and opens its exact affected child', async () =
   expect(await screen.findByRole('dialog', { name: 'Agent' })).toBeInTheDocument();
 });
 
+it('opens blocked QA feedback directly while ordinary agent navigation still starts on Context', async () => {
+  const child = { id: 'qa-child', profile_id: 'qa-profile', work_order_id: 'qa-order', status: 'closed', parent_session_id: 'session-1' };
+  const feedback = 'Remove the unsupported claim and add the missing legal and card details.';
+  const report = JSON.stringify({ verdict: 'needs_rework', feedback, reviewed_artifacts: [{ sha256: 'internal-receipt' }] });
+  const progress = { counts: { active_attempts: 0, queued_attempts: 0, unfinished_assignments: 1,
+    blocked_assignments: 1, ready_artifacts: 0 }, paused: true,
+    blocker: { kind: 'blocked_assignment', detail: 'A delegated assignment is blocked.', session_id: child.id },
+    next_action: { kind: 'open_agent', label: 'Review blocked agent', session_id: child.id } };
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([{ ...row, state: 'Paused', paused: true, status: 'running' }]);
+    if (path.endsWith('/chief-workspace/order-1/progress')) return json(progress);
+    if (path.endsWith('/team-session')) return json({ ...view, children: [child], assignments: [{ id: 'qa-assignment', child_session_id: child.id,
+      objective: 'Review the research package.', expected_result: 'QA verdict', acceptance_check: 'Verify claims', status: 'blocked' }] });
+    if (path.endsWith('/sessions/qa-child')) return json({ ...view, session: { ...view.session, id: child.id }, messages: [
+      { ...view.messages[0], id: 'qa-feedback', kind: 'agent', actor_id: 'profile:qa-profile', body: report }], attempts: [] });
+    return json([]);
+  }));
+  const user = userEvent.setup(); renderWorkspace(row.id);
+  await user.click(await screen.findByRole('button', { name: 'Review blocked agent' }));
+  let panel = screen.getByRole('dialog', { name: 'Agent' });
+  expect(within(panel).getByRole('tab', { name: 'Conversation' })).toHaveAttribute('aria-selected', 'true');
+  const review = await within(panel).findByRole('region', { name: 'Review feedback' });
+  expect(review).toHaveTextContent('Changes requested');
+  expect(review).toHaveTextContent(feedback);
+  expect(review).not.toHaveTextContent('internal-receipt');
+  expect(within(panel).getAllByText(new RegExp(feedback))).toHaveLength(1);
+  await user.click(within(panel).getByRole('tab', { name: 'Context' }));
+  expect(within(panel).getByText('Review the research package.')).toBeInTheDocument();
+  await user.click(within(panel).getByRole('button', { name: '← Chief' }));
+  await user.click(screen.getByRole('button', { name: 'Open Agent: Review the research package. (Blocked)' }));
+  panel = screen.getByRole('dialog', { name: 'Agent' });
+  expect(within(panel).getByRole('tab', { name: 'Context' })).toHaveAttribute('aria-selected', 'true');
+});
+
 it('shows a direct resume control for paused idle work with saved files', async () => {
   const progress = { counts: { active_attempts: 0, queued_attempts: 0, unfinished_assignments: 0,
     blocked_assignments: 0, ready_artifacts: 2 }, paused: true, blocker: null,

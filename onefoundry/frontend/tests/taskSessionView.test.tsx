@@ -31,6 +31,27 @@ it('requires an explicit reason to abandon unknown history before a separate tur
   expect(continueTeamSession).not.toHaveBeenCalled();
 });
 
+it('allows review of an unknown Chief turn while a separate child remains queued', async () => {
+  const unknown = { ...child.attempts[0], session_id: 'main', status: 'unknown' as const,
+    unknown_acknowledged: false };
+  vi.mocked(getTeamSession).mockImplementation(async (_project, _order, sessionId) => sessionId === 'child'
+    ? { ...child, attempts: [{ ...child.attempts[0], status: 'queued' as const }] }
+    : { ...root, attempts: [unknown], tool_calls: [],
+      children: [{ ...root.children[0], status: 'working' as const }] });
+  vi.mocked(reconcileTeamActions).mockResolvedValue(0);
+  const user = userEvent.setup();
+  render(<TaskSessionView projectId="project" orderId="order" profiles={[chief]} reloadKey={0} />);
+  const reconcile = await screen.findByRole('button', { name: 'Reconcile saved actions' });
+  await user.click(reconcile);
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Abandon unverified result' })).toBeDisabled());
+  await user.type(screen.getByLabelText('Reason for abandoning the unverified result'),
+    'Operator reviewed the unverified result and will use separate work.');
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Abandon unverified result' })).toBeEnabled());
+  await user.click(screen.getByRole('button', { name: 'Abandon unverified result' }));
+  await waitFor(() => expect(acknowledgeUnknown).toHaveBeenCalledOnce());
+  expect(continueTeamSession).not.toHaveBeenCalled();
+});
+
 const chief: Profile = { id: 'chief', project_id: 'project', kind: 'builtin', name: 'Chief of Staff',
   reports_to_profile_id: null, model: 'codex', model_account_id: 'account', instructions: 'Coordinate',
   memory_scope: 'project', allowed_tools: [], autonomy_level: 'manual', configured: true, permissions_active: false };

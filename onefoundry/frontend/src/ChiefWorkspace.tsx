@@ -37,6 +37,7 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
   const [draftAgentId, setDraftAgentId] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [reviewBlockedAgentId, setReviewBlockedAgentId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -161,7 +162,7 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
     </header>
     {order?.canonical_chief && state.view && <ChiefProgressCard progress={state.progress} error={state.progressError} status={order.status}
       onOpenAgent={(id) => { if (state.view?.session.id === id) rootRecovery.current?.querySelector<HTMLElement>('button:not(:disabled), textarea:not(:disabled)')?.focus();
-        else if (state.view?.children.some((child) => child.id === id)) state.setAgentId(id);
+        else if (state.view?.children.some((child) => child.id === id)) { setReviewBlockedAgentId(state.progress?.blocker?.kind === 'blocked_assignment' ? id : null); state.setAgentId(id); }
         else setError('The affected agent could not be found in this conversation. Refresh the saved work.'); }}
       onMessageChief={() => composer.current?.focus()}
       onReviewApproval={() => transcript.current?.querySelector<HTMLElement>('.chief-approval button')?.focus()}
@@ -213,6 +214,6 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
         <div><button type="button" aria-label="Attach files" disabled={!order || busy} title={order ? 'Attach files to this saved conversation' : 'Send the first message to save this conversation, then attach files'} onClick={() => setAttach(!attach)}>＋</button><button className="chief-send" type="submit" disabled={busy || reconnecting || state.resolving || !body.trim() || !!state.selectedId && (!order || !state.view)}> {busy ? 'Saving…' : 'Send'} ↑</button></div>
       </form>}<small>{agentId ? `Messages go to ${agentName}. Switch to Chief for team coordination.` : 'Chief handles the team. Approval requests appear here when your decision is needed.'}</small>
     </div></section>
-    {state.agentId && state.view && order && <ChiefAgentPanel key={state.agentId} projectId={project.id} orderId={order.id} sessionId={state.agentId} main={state.view} profiles={profiles} files={state.files} onClose={() => state.setAgentId(null)} />}
+    {state.agentId && state.view && order && <ChiefAgentPanel key={state.agentId} projectId={project.id} orderId={order.id} sessionId={state.agentId} main={state.view} profiles={profiles} files={state.files} initialTab={reviewBlockedAgentId === state.agentId ? 'conversation' : 'context'} onClose={() => { state.setAgentId(null); setReviewBlockedAgentId(null); }} />}
   </div>;
 }

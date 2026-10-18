@@ -1,6 +1,6 @@
 [project]
 name = "onefoundry"
-version = "0.21.1"
+version = "0.21.2"
 description = "Local OneFoundry service skeleton"
 requires-python = "==3.12.*"
 dependencies = [

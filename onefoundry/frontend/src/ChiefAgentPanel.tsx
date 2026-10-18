@@ -5,13 +5,14 @@ import { ChiefConversationText, isPublicAgentMessage } from './ChiefConversation
 import { WorkspaceArtifactPanel } from './WorkspaceArtifactPanel';
 import { ChiefAgentRecovery } from './ChiefAgentRecovery';
 import { TaskSessionActivity } from './TaskSessionActivity';
+import { messagePresentation } from './taskSessionActivity';
 
 export type ChiefFile = { id: string; run_id: string; profile_id: string; profile_name: string; kind: string;
   work_order_title?: string | null; status?: 'ready' | 'pending' | 'unknown' };
 type Props = { projectId: string; orderId: string; sessionId: string; main: TeamSessionView;
-  profiles: Profile[]; files: ChiefFile[]; onClose: () => void };
-export function ChiefAgentPanel({ projectId, orderId, sessionId, main, profiles, files, onClose }: Props) {
-  const [tab, setTab] = useState<'context' | 'conversation' | 'files'>('context');
+  profiles: Profile[]; files: ChiefFile[]; initialTab?: 'context' | 'conversation'; onClose: () => void };
+export function ChiefAgentPanel({ projectId, orderId, sessionId, main, profiles, files, initialTab = 'context', onClose }: Props) {
+  const [tab, setTab] = useState<'context' | 'conversation' | 'files'>(initialTab);
   const [view, setView] = useState<TeamSessionView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activityOpen, setActivityOpen] = useState(false);
@@ -20,6 +21,10 @@ export function ChiefAgentPanel({ projectId, orderId, sessionId, main, profiles,
   const child = main.children.find((item) => item.id === sessionId);
   const profile = profiles.find((item) => item.id === child?.profile_id);
   const assignment: TeamAssignment | undefined = main.assignments.find((item) => item.child_session_id === sessionId);
+  const reviewFeedback = initialTab === 'conversation' ? [...(view?.messages ?? [])].reverse().find((item) => {
+    const presentation = messagePresentation(item.body);
+    return item.kind === 'agent' && presentation.kind === 'text' && presentation.record?.verdict === 'needs_rework';
+  }) : undefined;
   async function refresh() {
     const saved = await getTeamSession(projectId, orderId, sessionId);
     setView(saved);
@@ -60,7 +65,8 @@ export function ChiefAgentPanel({ projectId, orderId, sessionId, main, profiles,
           {view?.messages.filter((item) => item.kind === 'system').map((item) => <section key={item.id}><h3>Supplied context</h3><ChiefConversationText body={item.body} /></section>)}
           <p>Chief owns this assignment and its next step.</p></>}
         {tab === 'conversation' && <>{!view && !error && <p role="status">Reading saved conversation…</p>}
-          {view?.messages.filter((item) => item.kind !== 'system' && (item.kind.includes('operator') || isPublicAgentMessage(item.body)))
+          {reviewFeedback && <section aria-label="Review feedback"><h3>Latest changes requested</h3><ChiefConversationText body={reviewFeedback.body} /></section>}
+          {view?.messages.filter((item) => item.id !== reviewFeedback?.id && item.kind !== 'system' && (item.kind.includes('operator') || isPublicAgentMessage(item.body)))
             .map((item) => <article className="chief-agent-message" key={item.id}><small>{item.kind.includes('operator') ? 'Operator' : profile?.name ?? 'Agent'}</small><ChiefConversationText body={item.body} /></article>)}
           {!!view?.history_omitted?.messages && <p>Earlier messages remain available in Details.</p>}
           {view && <details className="chief-agent-activity" onToggle={(event) => setActivityOpen(event.currentTarget.open)}><summary>Recorded actions and earlier attempts</summary>

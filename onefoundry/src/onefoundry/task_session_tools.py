@@ -51,6 +51,8 @@ ROLE = f"{NAMESPACE}.role_tool"
 COMPLETE = f"{NAMESPACE}.submit_completion"
 CANCEL = f"{NAMESPACE}.cancel_assignment"
 RETRY = f"{NAMESPACE}.retry_assignment"
+STALE_CHIEF_ACTIONS = frozenset((CANCEL, RETRY, COMPLETE))
+STALE_CHIEF_ACTION_REASON = "tool_no_longer_admitted"
 READ_DEPENDENCY = f"{NAMESPACE}.read_dependency_result"
 READ_INPUT_FILE = f"{NAMESPACE}.read_input_file"
 LIST_AGENTS = f"{NAMESPACE}.list_agents"
@@ -609,7 +611,18 @@ class TaskSessionTools:
                 ):
                     raise Conflict("provider tool call identity changed")
                 return dict(prior)
-            if not allow_new:
+            stale_chief_action = (
+                not allow_new
+                and name in STALE_CHIEF_ACTIONS
+                and scope["kind"] == "main"
+                and scope["is_project_chief"]
+                and scope["actionable"]
+                and (
+                    (name in (CANCEL, RETRY) and not scope["has_blocked"])
+                    or (name == COMPLETE and not scope["can_complete"])
+                )
+            )
+            if not allow_new and not stale_chief_action:
                 raise Conflict("team tool is not admitted for this agent")
             receipt_id = uuid5(NAMESPACE_URL, f"onefoundry:{self.project_id}:{self.attempt_id}:{call_id}")
             row = (
@@ -617,8 +630,9 @@ class TaskSessionTools:
                     text(
                         "INSERT INTO task_session_tool_calls "
                         "(id,project_id,actor_id,root_work_order_id,session_id,attempt_id,"
-                        "provider_call_id,tool_name,arguments_sha256) VALUES "
-                        "(:id,:p,:actor,:root,:session,:attempt,:call,:name,:digest) RETURNING *"
+                        "provider_call_id,tool_name,arguments_sha256,status,reason,finished_at) VALUES "
+                        "(:id,:p,:actor,:root,:session,:attempt,:call,:name,:digest,:status,:reason,"
+                        "CASE WHEN :status='failed' THEN clock_timestamp() ELSE NULL END) RETURNING *"
                     ),
                     {
                         "id": receipt_id,
@@ -630,6 +644,8 @@ class TaskSessionTools:
                         "call": call_id,
                         "name": name,
                         "digest": digest,
+                        "status": "failed" if stale_chief_action else "started",
+                        "reason": STALE_CHIEF_ACTION_REASON if stale_chief_action else None,
                     },
                 )
                 .mappings()
@@ -648,6 +664,21 @@ class TaskSessionTools:
                     "tool_name": name,
                 },
             )
+            if stale_chief_action:
+                self.gateway._event(
+                    connection,
+                    self.project_id,
+                    scope["work_order_id"],
+                    None,
+                    "task_session_tool_finished",
+                    {
+                        "session_id": str(self.session_id),
+                        "attempt_id": str(self.attempt_id),
+                        "tool_call_id": str(receipt_id),
+                        "status": "failed",
+                        "reason": STALE_CHIEF_ACTION_REASON,
+                    },
+                )
             return dict(row)
 
     def _finish(
@@ -893,6 +924,14 @@ class TaskSessionTools:
         if prior["status"] == "done":
             return _response(True, prior["result"])
         if prior["status"] == "failed":
+            if prior["reason"] == STALE_CHIEF_ACTION_REASON:
+                return _response(
+                    False,
+                    {
+                        "reason": STALE_CHIEF_ACTION_REASON,
+                        "next_step": "Inspect current assignments before choosing an available action.",
+                    },
+                )
             repository_correction = (
                 ToolRepositoryReadFailure.saved_correction(prior["reason"], str(arguments.get("tool_id", "")))
                 if name == ROLE

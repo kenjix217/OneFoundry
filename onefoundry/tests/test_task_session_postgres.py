@@ -1725,6 +1725,35 @@ def _reason(response: dict[str, object]) -> object:
     return json.loads(items[0]["text"]).get("reason")
 
 
+def test_stale_chief_retry_saves_failed_receipt_without_assignment_effect(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project_id, order_id, root_id, gateway = _team_turn(client, settings, "Stale Chief retry")
+        project = UUID(project_id)
+        attempt = TaskSessionAttempts(gateway).claim_next(project)
+        assert attempt is not None
+        tools = TaskSessionTools(gateway, project, UUID(root_id), attempt["id"])
+        arguments = {"assignment_id": str(uuid4()), "direction": "Use confirmed evidence."}
+        first = tools.invoke("onefoundry.retry_assignment", arguments, "stale-retry")
+        assert first["success"] is False
+        assert _reason(first) == "tool_no_longer_admitted"
+        assert tools.invoke("onefoundry.retry_assignment", arguments, "stale-retry") == first
+        with pytest.raises(Conflict, match="provider tool call identity changed"):
+            tools.invoke(
+                "onefoundry.retry_assignment",
+                {**arguments, "direction": "Changed direction."},
+                "stale-retry",
+            )
+        view = client.get(f"/api/projects/{project_id}/work-orders/{order_id}/team-session").json()
+        receipts = [row for row in view["tool_calls"] if row["attempt_id"] == str(attempt["id"])]
+        assert len(receipts) == 1
+        assert receipts[0]["tool_name"] == "onefoundry.retry_assignment"
+        assert receipts[0]["status"] == "failed"
+        assert receipts[0]["reason"] == "tool_no_longer_admitted"
+        assert view["assignments"] == []
+        gateway.engine.dispose()
+
+
 @pytest.mark.parametrize("replacement", [False, True])
 @pytest.mark.parametrize("manual", [False, True])
 def test_chief_synthesis_after_canceled_branch_in_same_revision(
