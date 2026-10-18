@@ -30,8 +30,12 @@ export function ChiefProgressCard({ progress, error, status, onOpenAgent, onMess
         <span>{counts!.unfinished_assignments} results needed</span><span>{counts!.blocked_assignments} blocked</span>
         <span>{counts!.ready_artifacts} saved files</span>
       </div>
-      {canResume && <button type="button" disabled={resumeDisabled} onClick={onResume}>Resume work</button>}
-      {action && action.kind !== 'none' && action.kind !== 'wait' && <button type="button" onClick={act}>{action.label}</button>}
+      {(canResume || (action && action.kind !== 'none' && action.kind !== 'wait')) &&
+        <div className="chief-progress-actions" role="group" aria-label="Current work actions">
+          {canResume && <button className="chief-progress-resume" type="button" disabled={resumeDisabled} onClick={onResume}>Resume work</button>}
+          {action && action.kind !== 'none' && action.kind !== 'wait' &&
+            <button className="chief-progress-review" type="button" onClick={act}>{action.label}</button>}
+        </div>}
       {action?.kind === 'wait' && <small>{action.label}</small>}
     </> : <p role="status">Reading current work…</p>}
   </section>;

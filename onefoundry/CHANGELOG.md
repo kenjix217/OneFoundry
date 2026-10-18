@@ -1,5 +1,9 @@
 # OneFoundry changelog
 
+## 0.21.1
+
+- Separate Current work actions with wrapping, touch-sized buttons so Resume work and review controls stay readable on mobile. Preserve the same callbacks and disabled states.
+
 ## 0.21.0
 
 - Prefer publisher-provided Markdown at the same searched URL and read meaningful HTML content before navigation. Keep search JSON, source admission, full-body secret checks and existing byte/time bounds.

@@ -255,6 +255,10 @@ it('shows a direct resume control for paused idle work with saved files', async 
   expect(card).toHaveTextContent('No agent work is running or queued.');
   expect(card).toHaveTextContent('Saved files are ready to review.');
   expect(card).not.toHaveTextContent('Chief is reviewing');
+  const actions = within(card).getByRole('group', { name: 'Current work actions' });
+  expect(within(actions).getAllByRole('button')).toHaveLength(2);
+  expect(within(actions).getByRole('button', { name: 'Resume work' })).toHaveClass('chief-progress-resume');
+  expect(within(actions).getByRole('button', { name: 'Review saved deliverables' })).toHaveClass('chief-progress-review');
   await userEvent.setup().click(within(card).getByRole('button', { name: 'Resume work' }));
   await waitFor(() => expect(controls).toHaveBeenCalledOnce());
   expect(within(card).getByRole('button', { name: 'Resume work' })).toBeDisabled();

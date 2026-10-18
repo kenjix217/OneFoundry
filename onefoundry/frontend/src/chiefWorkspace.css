@@ -68,7 +68,12 @@
 .chief-progress-heading span{font-size:10px;color:var(--theme-muted);border:1px solid var(--theme-border);border-radius:999px;padding:2px 7px}
 .chief-progress p{margin:5px 0 8px;overflow-wrap:anywhere}
 .chief-progress-counts{display:flex;gap:6px 13px;flex-wrap:wrap;color:var(--theme-muted);font-size:10px}
-.chief-workspace .chief-progress>button{padding:5px 0;margin-top:6px;color:var(--theme-accent);font-weight:600;text-align:left}
+.chief-progress-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chief-workspace .chief-progress-actions>button{min-height:44px;max-width:100%;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;line-height:1.35;text-align:center;white-space:normal}
+.chief-workspace .chief-progress-actions>.chief-progress-resume{background:var(--theme-accent);color:var(--theme-on-accent)}
+.chief-workspace .chief-progress-actions>.chief-progress-review{border:1px solid var(--theme-accent-line);background:var(--theme-surface);color:var(--theme-link)}
+.chief-workspace .chief-progress-actions>.chief-progress-resume:hover:not(:disabled){background:var(--theme-accent-hover)}
+.chief-workspace .chief-progress-actions>.chief-progress-review:hover:not(:disabled){background:var(--theme-accent-soft)}
 .chief-progress>small{display:block;margin-top:6px;color:var(--theme-muted)}
 .chief-transcript{flex:1;min-height:0;overflow:auto;padding:25px max(34px,calc((100% - 780px)/2)) 20px;overscroll-behavior:contain}
 .chief-welcome{max-width:530px;margin:10vh auto;text-align:center;color:var(--theme-muted);line-height:1.65}
