@@ -208,6 +208,219 @@ it('presents saved structured agent findings as readable public text', () => {
   expect(publicMessage(JSON.stringify({ summary: 'Verified product brief', artifact: { artifact_id: 'internal' } }))).toBe('Verified product brief');
 });
 
+it('shows the saved team blocker and opens its exact affected child', async () => {
+  const child = { id: 'child-unknown', profile_id: 'research-1', work_order_id: 'child-order', status: 'closed', parent_session_id: 'session-1' };
+  const progress = { counts: { active_attempts: 0, queued_attempts: 0, unfinished_assignments: 0,
+    blocked_assignments: 0, ready_artifacts: 2 }, paused: true,
+    blocker: { kind: 'unknown_attempt', detail: 'Researcher has an unverified outcome.', session_id: child.id, attempt_id: 'attempt-unknown' },
+    next_action: { kind: 'open_agent', label: 'Review Researcher outcome', session_id: child.id } };
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([{ ...row, state: 'Paused', paused: true, status: 'running' }]);
+    if (path.endsWith('/chief-workspace/order-1/progress')) return json(progress);
+    if (path.endsWith('/team-session')) return json({ ...view, children: [child] });
+    if (path.endsWith('/sessions/child-unknown')) return json({ ...view, session: { ...view.session, id: child.id },
+      attempts: [{ id: 'attempt-unknown', session_id: child.id, status: 'unknown', unknown_acknowledged: false,
+        reason: 'runner_interrupted', created_at: '2026-10-18T12:00:00Z', finished_at: '2026-10-18T12:01:00Z' }] });
+    return json([]);
+  }));
+  renderWorkspace(row.id);
+  expect(await screen.findByRole('region', { name: 'Current work' })).toHaveTextContent('Researcher has an unverified outcome.');
+  expect(screen.getByRole('region', { name: 'Current work' })).toHaveTextContent('Paused');
+  expect(within(screen.getByRole('region', { name: 'Current work' })).queryByRole('button', { name: 'Resume work' })).not.toBeInTheDocument();
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Review Researcher outcome' }));
+  expect(await screen.findByRole('dialog', { name: 'Agent' })).toBeInTheDocument();
+});
+
+it('shows a direct resume control for paused idle work with saved files', async () => {
+  const progress = { counts: { active_attempts: 0, queued_attempts: 0, unfinished_assignments: 0,
+    blocked_assignments: 0, ready_artifacts: 2 }, paused: true, blocker: null,
+    next_action: { kind: 'review_deliverables', label: 'Review saved deliverables' } };
+  const controls = vi.fn();
+  let confirmControl: ((response: Response) => void) | undefined;
+  vi.stubGlobal('fetch', vi.fn(async (path: string, init?: RequestInit) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([{ ...row, paused: true, state: 'Paused', status: 'running' }]);
+    if (path.endsWith('/chief-workspace/order-1/progress')) return json(progress);
+    if (path.endsWith('/team-session')) return json(view);
+    if (path.endsWith('/chief-workspace/order-1/controls')) {
+      controls(JSON.parse(String(init?.body)));
+      return await new Promise<Response>((resolve) => { confirmControl = resolve; });
+    }
+    return json([]);
+  }));
+  renderWorkspace(row.id);
+  const card = await screen.findByRole('region', { name: 'Current work' });
+  expect(card).toHaveTextContent('No agent work is running or queued.');
+  expect(card).toHaveTextContent('Saved files are ready to review.');
+  expect(card).not.toHaveTextContent('Chief is reviewing');
+  await userEvent.setup().click(within(card).getByRole('button', { name: 'Resume work' }));
+  await waitFor(() => expect(controls).toHaveBeenCalledOnce());
+  expect(within(card).getByRole('button', { name: 'Resume work' })).toBeDisabled();
+  expect(controls.mock.calls[0]?.[0]).toMatchObject({ action: 'resume', expected_version: 3,
+    expected_controls_version: 1 });
+  confirmControl?.(json({ order_id: row.id, action: 'resume', controls_version: 2 }));
+  await waitFor(() => expect(within(card).getByRole('button', { name: 'Resume work' })).toBeEnabled());
+});
+
+it('does not imply an agent is reviewing idle saved files', async () => {
+  const progress = { counts: { active_attempts: 0, queued_attempts: 0, unfinished_assignments: 0,
+    blocked_assignments: 0, ready_artifacts: 2 }, paused: false, blocker: null,
+    next_action: { kind: 'review_deliverables', label: 'Review saved deliverables' } };
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([{ ...row, status: 'running', state: 'Idle' }]);
+    if (path.endsWith('/chief-workspace/order-1/progress')) return json(progress);
+    if (path.endsWith('/team-session')) return json(view);
+    return json([]);
+  }));
+  renderWorkspace(row.id);
+  const card = await screen.findByRole('region', { name: 'Current work' });
+  expect(card).toHaveTextContent('No agent work is running or queued.');
+  expect(card).toHaveTextContent('Saved files are ready to review.');
+  expect(within(card).queryByRole('button', { name: 'Resume work' })).not.toBeInTheDocument();
+});
+
+it.each([
+  { name: 'unfinished assignment', queued: 0,
+    blocker: { kind: 'unfinished_assignment', detail: 'A delegated assignment is unfinished.', session_id: 'child-1' },
+    next_action: { kind: 'open_agent', label: 'Review unfinished agent', session_id: 'child-1' } },
+  { name: 'queued work', queued: 1, blocker: null,
+    next_action: { kind: 'wait', label: 'Work is in progress' } },
+])('offers Resume work for paused $name', async ({ queued, blocker, next_action }) => {
+  const progress = { counts: { active_attempts: 0, queued_attempts: queued, unfinished_assignments: 1,
+    blocked_assignments: 0, ready_artifacts: 0 }, paused: true, blocker, next_action };
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([{ ...row, paused: true, status: 'running' }]);
+    if (path.endsWith('/chief-workspace/order-1/progress')) return json(progress);
+    if (path.endsWith('/team-session')) return json(view);
+    return json([]);
+  }));
+  renderWorkspace(row.id);
+  const card = await screen.findByRole('region', { name: 'Current work' });
+  expect(within(card).getByRole('button', { name: 'Resume work' })).toBeEnabled();
+});
+
+it('opens guarded recovery for an unknown Chief attempt in the root session', async () => {
+  const progress = { counts: { active_attempts: 0, queued_attempts: 0, unfinished_assignments: 0,
+    blocked_assignments: 0, ready_artifacts: 0 }, paused: false,
+    blocker: { kind: 'unknown_attempt', detail: 'Chief has an unverified outcome.', session_id: 'session-1', attempt_id: 'attempt-root' },
+    next_action: { kind: 'open_agent', label: 'Review uncertain attempt', session_id: 'session-1' } };
+  const rootView = { ...view, attempts: [{ id: 'attempt-root', session_id: 'session-1', status: 'unknown',
+    unknown_acknowledged: false, reason: 'runner_interrupted' }] };
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([{ ...row, status: 'running', state: 'Checking outcome' }]);
+    if (path.endsWith('/chief-workspace/order-1/progress')) return json(progress);
+    if (path.endsWith('/team-session')) return json(rootView);
+    return json([]);
+  }));
+  renderWorkspace(row.id);
+  await userEvent.setup().click(await screen.findByRole('button', { name: 'Review uncertain attempt' }));
+  expect(await screen.findByRole('region', { name: 'Agent recovery' })).toHaveTextContent('Unknown outcome needs your decision');
+  expect(screen.getByRole('button', { name: 'Reconcile saved actions' })).toHaveFocus();
+  expect(screen.queryByText('The affected agent could not be found')).not.toBeInTheDocument();
+});
+
+it('routes a text completion review action to the saved operator decision', async () => {
+  const progress = { counts: { active_attempts: 0, queued_attempts: 0, unfinished_assignments: 0,
+    blocked_assignments: 0, ready_artifacts: 0 }, paused: false, blocker: null,
+    next_action: { kind: 'review_outcome', label: 'Review completed result' } };
+  const reviewOrder = { id: row.id, project_id: project.id, title: row.title, instructions: 'Prepare a brief',
+    profile_id: 'chief-1', deliverable_kind: 'text_reply', acceptance_checks: ['Confirm facts'],
+    parent_work_order_id: null, source_run_id: null, origin_signal_id: null, chain_depth: 0,
+    status: 'needs_review', version: 3, block_reason: null, blocked_from_status: null, created_at: '2026-10-18T12:00:00Z' };
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([{ ...row, status: 'needs_review', completion_policy: 'operator_review', state: 'Review requested' }]);
+    if (path.endsWith('/chief-workspace/order-1/progress')) return json(progress);
+    if (path.endsWith('/team-session')) return json(view);
+    if (path.endsWith('/work-orders')) return json([reviewOrder]);
+    return json([]);
+  }));
+  renderWorkspace(row.id);
+  await userEvent.setup().click(await screen.findByRole('button', { name: 'Review completed result' }));
+  expect(screen.getByRole('region', { name: 'Work order review' })).toHaveTextContent('Review completion');
+  expect(screen.getByRole('textbox', { name: 'Reason for your decision' })).toHaveFocus();
+});
+
+it('lists distinct saved deliverables from the same run', async () => {
+  const files = [
+    { id: 'artifact-1', run_id: 'run-1', profile_id: 'research-1', profile_name: 'Researcher', kind: 'markdown', work_order_title: 'Market evidence summary' },
+    { id: 'artifact-2', run_id: 'run-1', profile_id: 'research-1', profile_name: 'Researcher', kind: 'markdown' },
+  ];
+  const savedArtifacts = files.map((file) => ({ id: file.id, kind: 'markdown', mime_type: 'text/markdown',
+    sha256: 'a'.repeat(64), byte_size: 20, status: 'ready', created_at: '2026-10-18T12:00:00Z', finished_at: '2026-10-18T12:01:00Z' }));
+  const fetch = vi.fn(async (path: string) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([row]);
+    if (path.endsWith('/team-session')) return json(view);
+    if (path.endsWith('/team-session/artifacts')) return json(files);
+    if (path.endsWith('/runs/run-1/workspace-artifacts')) return json(savedArtifacts);
+    if (path.endsWith('/runs/run-1/workspace-artifacts/artifact-2')) return json({ ...savedArtifacts[1], content: 'Second saved deliverable' });
+    return json([]);
+  });
+  vi.stubGlobal('fetch', fetch);
+  renderWorkspace(row.id);
+  const deliveries = await screen.findByRole('region', { name: 'Saved deliverables' });
+  expect(within(deliveries).getAllByRole('button')).toHaveLength(2);
+  expect(within(deliveries).getByRole('button', { name: /Market evidence summary/ })).toHaveTextContent('Researcher · markdown');
+  await userEvent.setup().click(within(deliveries).getByRole('button', { name: /file 2/ }));
+  expect(await screen.findByText('Second saved deliverable')).toBeInTheDocument();
+  expect(fetch.mock.calls.some(([path]) => path.endsWith('/workspace-artifacts/artifact-2'))).toBe(true);
+});
+
+it('requires a reasoned operator decision for an exact unknown child attempt', async () => {
+  const child = { id: 'child-unknown', profile_id: 'research-1', work_order_id: 'child-order', status: 'closed', parent_session_id: 'session-1' };
+  const acknowledgement = vi.fn();
+  vi.stubGlobal('fetch', vi.fn(async (path: string, init?: RequestInit) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([row]);
+    if (path.endsWith('/team-session')) return json({ ...view, children: [child], assignments: [{ id: 'assignment-1', child_session_id: child.id,
+      objective: 'Research sources', expected_result: 'Saved findings', acceptance_check: 'Cite sources', status: 'satisfied' }] });
+    if (path.endsWith('/sessions/child-unknown')) return json({ ...view, session: { ...view.session, id: child.id },
+      attempts: [{ id: 'attempt-unknown', session_id: child.id, status: 'unknown', unknown_acknowledged: false,
+        reason: 'runner_interrupted', created_at: '2026-10-18T12:00:00Z', finished_at: '2026-10-18T12:01:00Z' }] });
+    if (path.endsWith('/sessions/child-unknown/reconcile')) return json({ reconciled_actions: 0 });
+    if (path.endsWith('/attempts/attempt-unknown/acknowledge')) { acknowledgement(JSON.parse(String(init?.body))); return json({}); }
+    return json([]);
+  }));
+  renderWorkspace(row.id);
+  await userEvent.setup().click(await screen.findByRole('button', { name: /Agent ↗/ }));
+  const panel = screen.getByRole('dialog', { name: 'Agent' });
+  expect(await within(panel).findByText(/Unknown outcome needs your decision/)).toBeInTheDocument();
+  expect(acknowledgement).not.toHaveBeenCalled();
+  const reason = within(panel).getByRole('textbox', { name: /Reason for abandoning/ });
+  await userEvent.setup().click(within(panel).getByRole('button', { name: 'Reconcile saved actions' }));
+  await within(panel).findByText('0 saved action receipts reconciled. No agent turn was launched.');
+  await userEvent.setup().type(reason, 'No confirmed result or outstanding effects were found.');
+  await userEvent.setup().click(within(panel).getByRole('button', { name: 'Abandon unverified result' }));
+  await waitFor(() => expect(acknowledgement).toHaveBeenCalledOnce());
+  expect(acknowledgement.mock.calls[0]?.[0]).toMatchObject({ decision: 'abandon_unverified', reason: 'No confirmed result or outstanding effects were found.' });
+});
+
+it('keeps delegated raw result text in the agent panel while Chief chat shows its handoff', async () => {
+  const child = { id: 'child-1', profile_id: 'research-1', work_order_id: 'child-order', status: 'closed', parent_session_id: 'session-1' };
+  const childResult = 'Saved source report. '.repeat(200);
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([row]);
+    if (path.endsWith('/team-session')) return json({ ...view, children: [child], messages: [view.messages[0],
+      { ...view.messages[0], id: 'handoff', sequence: 2, kind: 'agent', actor_id: 'profile:research-1', source_session_id: child.id, body: childResult }] });
+    if (path.endsWith('/sessions/child-1')) return json({ ...view, session: { ...view.session, id: child.id }, messages: [
+      { ...view.messages[0], id: 'result', kind: 'agent', body: childResult }] });
+    return json([]);
+  }));
+  renderWorkspace(row.id);
+  const conversation = await screen.findByRole('region', { name: 'Chief conversation' });
+  expect(within(conversation).queryByText(childResult)).not.toBeInTheDocument();
+  await userEvent.setup().click(await within(conversation).findByRole('button', { name: 'Open Agent result' }));
+  const panel = screen.getByRole('dialog', { name: 'Agent' });
+  await userEvent.setup().click(within(panel).getByRole('tab', { name: 'Conversation' }));
+  expect(await within(panel).findByText(/Saved source report\. Saved source report\./)).toBeInTheDocument();
+});
+
 it('retains an unresolved first-message identity across a reload and a missing lookup', async () => {
   const body = 'Prepare one customer demonstration.';
   const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(body)));

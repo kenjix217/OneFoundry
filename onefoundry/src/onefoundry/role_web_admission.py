@@ -40,10 +40,76 @@ from onefoundry.role_tool_admission import (
     _reject_sensitive_output,
     _researcher,
 )
-from onefoundry.role_web_tools import WEB_TOOLS
+from onefoundry.role_web_tools import FETCH_TOOL_ID, WEB_TOOLS
 
 if TYPE_CHECKING:
     from onefoundry.tool_gateway import ToolGateway
+
+
+_WEB_POLICY_STEPS = {
+    "web_policy_rejected": "Inspect the public-web policy and source before retrying with a new call.",
+    "web_target_invalid": "Use an exact public HTTPS URL returned by this run's search.",
+    "web_target_credentials": "Choose a public URL without embedded credentials.",
+    "web_target_not_public": "Choose a public HTTPS source; private destinations are blocked.",
+    "web_target_peer_changed": "The resolved peer changed; inspect the source before any new call.",
+    "web_limits_invalid": "Inspect the configured public-web limits.",
+    "web_search_endpoint_invalid": "Inspect the configured trusted search endpoint.",
+    "web_search_query_invalid": "Use public search terms within the query bound.",
+    "web_search_response_invalid": "Inspect the configured search service's JSON response contract.",
+    "web_response_too_large": "The source exceeded the configured response-byte limit.",
+    "web_response_compressed": "The source returned compressed content, which this reader blocks.",
+    "web_response_content_type": "Choose a public HTML or plain-text source.",
+    "web_content_sensitive": "Secret screening blocked the source; do not route it through another read.",
+}
+_WEB_DEPENDENCY_STEPS = {
+    "web_dependency_unavailable": "Inspect the configured public-web dependency before another call.",
+    "web_dns_unavailable": "Public DNS resolution failed; inspect the source or network dependency.",
+    "web_network_unavailable": "The public HTTPS connection failed; inspect network readiness.",
+    "web_http_status_unavailable": "The source returned a non-success HTTP status.",
+    "web_worker_unavailable": "The bounded public-web worker could not start; inspect local runtime health.",
+    "web_search_not_configured": "Configure the trusted public search endpoint before searching.",
+}
+
+
+class WebPolicyFailure(ToolPolicyRejected):
+    """Policy rejection with a fixed, content-free owner code."""
+
+    def __init__(self, code: str) -> None:
+        self.code = code if code in _WEB_POLICY_STEPS else "web_policy_rejected"
+        super().__init__(self.code)
+
+    def as_correction(self) -> dict[str, str]:
+        return {
+            "reason": "tool_policy_rejected",
+            "owner_reason": self.code,
+            "next_step": _WEB_POLICY_STEPS[self.code],
+        }
+
+
+class WebDependencyFailure(ToolDependencyFailure):
+    """Dependency failure with a fixed, content-free owner code."""
+
+    def __init__(self, code: str) -> None:
+        self.code = code if code in _WEB_DEPENDENCY_STEPS else "web_dependency_unavailable"
+        super().__init__(self.code)
+
+    def as_correction(self) -> dict[str, str]:
+        return {
+            "reason": "tool_dependency_failure",
+            "owner_reason": self.code,
+            "next_step": _WEB_DEPENDENCY_STEPS[self.code],
+        }
+
+
+def saved_web_correction(code: str, tool_id: str) -> dict[str, str] | None:
+    """Recreate a first-call correction from a saved reason without raw source data."""
+    if tool_id not in WEB_TOOLS:
+        return None
+    if code in _WEB_POLICY_STEPS:
+        return WebPolicyFailure(code).as_correction()
+    if code in _WEB_DEPENDENCY_STEPS:
+        return WebDependencyFailure(code).as_correction()
+    return None
 
 
 def _admitted(context: RunContext, tool_id: str) -> bool:
@@ -57,11 +123,35 @@ def _checked_result(result: object, tool_id: str, max_bytes: int) -> tuple[dict[
         WEB_TOOLS[tool_id].validate_output(result)
     except ValueError:
         raise ToolOutputRejected("web tool result failed its registered contract") from None
+    _reject_sensitive_output(result)
     encoded = json.dumps(result, allow_nan=False, separators=(",", ":")).encode("utf-8")
+    if len(encoded) > max_bytes and tool_id == FETCH_TOOL_ID:
+        result, encoded = _fit_fetch_excerpt(result, max_bytes)
     if len(encoded) > max_bytes:
         raise ToolOutputRejected("web tool result exceeds the configured byte limit")
-    _reject_sensitive_output(result)
     return result, encoded
+
+
+def _fit_fetch_excerpt(result: dict[str, Any], max_bytes: int) -> tuple[dict[str, Any], bytes]:
+    """Shorten only fetched text so its complete JSON result fits the live envelope."""
+    original_text = result["text"]
+    if not isinstance(original_text, str):
+        raise ToolOutputRejected("web tool result failed its registered contract")
+    fitted = {**result, "text": "", "text_truncated": True}
+    encoded = json.dumps(fitted, allow_nan=False, separators=(",", ":")).encode("utf-8")
+    if len(encoded) > max_bytes:
+        raise ToolOutputRejected("web tool result exceeds the configured byte limit")
+    low, high = 0, len(original_text)
+    while low < high:
+        midpoint = (low + high + 1) // 2
+        fitted["text"] = original_text[:midpoint]
+        candidate = json.dumps(fitted, allow_nan=False, separators=(",", ":")).encode("utf-8")
+        if len(candidate) <= max_bytes:
+            low, encoded = midpoint, candidate
+        else:
+            high = midpoint - 1
+    fitted["text"] = original_text[:low]
+    return fitted, encoded
 
 
 def _searched_url(connection: Any, project_id: UUID, run_id: UUID, url: str) -> bool:
@@ -281,11 +371,11 @@ def invoke_web_tool(
         if isinstance(error, (ToolDenied, ToolOutputRejected, ToolPolicyRejected, ToolTimedOut)):
             failure = error
         elif isinstance(error, PublicWebRejected):
-            failure = ToolPolicyRejected("web request was blocked by public-source policy")
+            failure = WebPolicyFailure(error.code)
         elif isinstance(error, (PublicWebTimedOut, TimeoutError)):
             failure = ToolTimedOut("web tool timed out")
         elif isinstance(error, PublicWebUnavailable):
-            failure = ToolDependencyFailure("web search or page source is unavailable")
+            failure = WebDependencyFailure(error.code)
         elif isinstance(error, DBAPIError) and getattr(error.orig, "sqlstate", None) in ("55P03", "57014"):
             failure = ToolTimedOut("web tool database check timed out")
         else:
@@ -309,7 +399,17 @@ def invoke_web_tool(
                     connection,
                     context,
                     "role_tool_finished",
-                    {"call_id": call_id, "tool_id": tool_id, "status": "failed", "reason": reason},
+                    {
+                        "call_id": call_id,
+                        "tool_id": tool_id,
+                        "status": "failed",
+                        "reason": reason,
+                        **(
+                            {"owner_reason": failure.code}
+                            if isinstance(failure, (WebPolicyFailure, WebDependencyFailure))
+                            else {}
+                        ),
+                    },
                 )
                 if web_reservation_id is not None:
                     settle(

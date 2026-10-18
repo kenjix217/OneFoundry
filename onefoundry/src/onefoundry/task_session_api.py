@@ -17,6 +17,7 @@ from onefoundry.task_session_schemas import (
     SessionViewOut,
 )
 from onefoundry.task_session_start import TaskSessionStart, TeamStart
+from onefoundry.task_session_terminal_reconciliation import reconcile as reconcile_terminal_attempts
 from onefoundry.task_session_tools import TaskSessionTools
 from onefoundry.task_session_uncertainty import UnknownAcknowledgement, acknowledge
 from onefoundry.tool_gateway import ToolGateway
@@ -92,7 +93,10 @@ def make_task_session_router(gateway: ToolGateway) -> APIRouter:
                 operator=True
             )
         )
-        return {"reconciled_actions": count}
+        return {
+            "reconciled_actions": count
+            + execute(lambda: reconcile_terminal_attempts(gateway, project_id, order_id, session_id))
+        }
 
     @router.post("", response_model=SessionViewOut)
     def open_session(project_id: UUID, order_id: UUID, response: Response) -> SessionViewOut:

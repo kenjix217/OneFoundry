@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 
+from onefoundry.public_web_client import PublicWebRejected
 from onefoundry.role_tool_admission import (
     ToolDenied,
     ToolOutcomeUnknown,
@@ -18,6 +19,7 @@ from onefoundry.role_tool_admission import (
     _researcher,
     available_tools,
 )
+from onefoundry.role_web_admission import WebPolicyFailure
 from onefoundry.settings import Settings
 from onefoundry.tool_gateway import ToolGateway
 from tests.test_role_tool_admission_postgres import _run, _tool_events
@@ -293,6 +295,28 @@ def test_unsearched_url_denial_preserves_actionable_owner_reason(
         )
     assert raised.value.reason == "source_not_searched"
     assert _tool_events(gateway, project_id, run_id)[-1]["payload"]["reason"] == "source_not_searched"
+
+
+def test_web_policy_receipt_keeps_safe_size_code_without_source_text(
+    client: TestClient, gateway: ToolGateway, settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project_id, run_id, profile_id = _run(client, gateway, tools=[FETCH])
+    enabled = _enabled(gateway, settings)
+    url = "https://example.org/official-pricing"
+    _searched_source(enabled, project_id, run_id, profile_id, url)
+
+    class OversizeClient:
+        def fetch(self, **_kwargs: object) -> dict[str, object]:
+            raise PublicWebRejected("public web content exceeded limit", code="web_response_too_large")
+
+    monkeypatch.setattr("onefoundry.role_web_admission.PublicWebClient", OversizeClient)
+    with pytest.raises(WebPolicyFailure) as raised:
+        _call(enabled, project_id, run_id, profile_id, FETCH, {"url": url})
+    assert raised.value.code == "web_response_too_large"
+    event = _tool_events(enabled, project_id, run_id)[-1]
+    assert event["payload"]["reason"] == "policy_rejected"
+    assert event["payload"]["owner_reason"] == "web_response_too_large"
+    assert url not in json.dumps(event)
 
 
 def test_invalid_search_arguments_preserve_owner_reason(

@@ -69,6 +69,7 @@ class SessionMessageOut(StrictModel):
 class SessionAttemptOut(StrictModel):
     purpose: Literal["work", "discussion"] = "work"
     unknown_acknowledged: bool = False
+    terminal_result_reconciled: bool = False
     id: UUID
     project_id: UUID
     session_id: UUID

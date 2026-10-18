@@ -5,7 +5,7 @@ export type TeamMessage = { id: string; session_id: string; client_message_id: s
   sequence: number; actor_id: string; kind: 'operator' | 'agent' | 'system' | 'legacy_operator' | 'legacy_agent';
   body: string; created_at: string };
 export type TeamAttempt = { purpose?: "work" | "discussion"; id: string; session_id: string; status: 'queued' | 'running' | 'done' | 'failed' | 'unknown';
-  unknown_acknowledged?: boolean; source_message_id?: string | null;
+  unknown_acknowledged?: boolean; terminal_result_reconciled?: boolean; source_message_id?: string | null;
   started_at?: string | null; not_before?: string | null;
   client_attempt_id: string | null;
   reason: string | null; input_tokens: number | null; output_tokens: number | null; cost_usd: string | null;

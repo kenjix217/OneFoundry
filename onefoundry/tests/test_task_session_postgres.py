@@ -1934,6 +1934,9 @@ def test_sdk_worker_runs_each_agent_on_its_own_provider_and_switches_between_tur
         view = client.get(base).json()
         assert [row["status"] for row in view["assignments"]] == ["satisfied"]
         assert [row["kind"] for row in view["decision_causes"]] == ["synthesis"]
+        child_view = client.get(f"{base}/sessions/{view['assignments'][0]['child_session_id']}").json()
+        assert sum(message["body"] == "Fact A [source 1]." for message in child_view["messages"]) == 1
+        assert all(message["body"] != "Result reported." for message in child_view["messages"])
 
         bind("Chief of Staff", hosted, "vendor/chat-test")
         assert TaskSessionDecisions(gateway).dispatch_next(project) is not None
@@ -2151,4 +2154,199 @@ def test_large_dependency_pages_preserve_declared_scope_and_allow_turn_preflight
         with pytest.raises(Conflict, match="outside an active agent turn"):
             tools.invoke("onefoundry.list_agents", {}, "settled-turn")
         other_gateway.engine.dispose()
+        gateway.engine.dispose()
+
+
+@pytest.mark.parametrize("damage", [None, "digest", "missing_terminal", "started"])
+def test_terminal_unknown_reconciles_only_exact_saved_result(tmp_path: Path, damage: str | None) -> None:
+    settings = _settings(tmp_path)
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project_id, _chief_id, order_id = _order(client, "Saved terminal result")
+        base = f"/api/projects/{project_id}/work-orders/{order_id}/team-session"
+        main = client.post(base, headers=ORIGIN).json()["session"]
+        researcher = next(
+            item
+            for item in client.get(f"/api/projects/{project_id}/profiles").json()
+            if item["name"] == "Researcher"
+        )
+        bootstrap_url = settings.database_url.set(
+            username=os.environ["DB_USER"], password=os.environ["DB_PASSWORD"]
+        )
+        with create_engine(bootstrap_url).begin() as connection:
+            connection.execute(
+                text("UPDATE task_sessions SET execution_mode='team' WHERE project_id=:p AND id=:s"),
+                {"p": UUID(project_id), "s": UUID(main["id"])},
+            )
+        assert (
+            client.post(
+                f"{base}/continue", json={"client_attempt_id": str(uuid4())}, headers=ORIGIN
+            ).status_code
+            == 202
+        )
+        engine = create_engine(settings.database_url)
+        gateway = ToolGateway(engine, "team-runner")
+        attempts = TaskSessionAttempts(gateway)
+        chief = attempts.claim_next(UUID(project_id))
+        assert chief is not None
+        assignment = TaskSessionAssignments(gateway).delegate(
+            UUID(project_id),
+            UUID(main["id"]),
+            chief["id"],
+            DelegateRequest(
+                client_action_id=uuid4(),
+                profile_id=UUID(researcher["id"]),
+                objective="Inspect the saved source.",
+                expected_result="One verified finding.",
+                acceptance_check="Save one exact text result.",
+            ),
+        )
+        attempts.settle(UUID(project_id), chief["id"], "done", public_reply="Research assigned.")
+        child = attempts.claim_next(UUID(project_id))
+        assert child is not None and child["session_id"] == assignment["child_session_id"]
+        if damage != "missing_terminal":
+            receipt = TaskSessionTools(gateway, UUID(project_id), child["session_id"], child["id"]).invoke(
+                "onefoundry.report_result", {"body": "Verified finding."}, "terminal-result"
+            )
+            assert receipt["success"] is True
+        attempts.settle(UUID(project_id), child["id"], "unknown", reason="team_tool_outcome_unknown")
+        with engine.begin() as connection:
+            if damage == "digest":
+                connection.execute(
+                    text(
+                        "UPDATE task_session_assignments SET result_sha256=:digest "
+                        "WHERE project_id=:p AND child_session_id=:s"
+                    ),
+                    {"p": UUID(project_id), "s": child["session_id"], "digest": "0" * 64},
+                )
+            elif damage == "started":
+                connection.execute(
+                    text(
+                        "INSERT INTO task_session_tool_calls (id,project_id,actor_id,"
+                        "root_work_order_id,session_id,attempt_id,provider_call_id,tool_name,"
+                        "arguments_sha256) VALUES "
+                        "(:id,:p,:actor,:root,:s,:a,:call,'onefoundry.publish_update',:digest)"
+                    ),
+                    {
+                        "id": uuid4(),
+                        "p": UUID(project_id),
+                        "actor": f"profile:{researcher['id']}",
+                        "root": UUID(order_id),
+                        "s": child["session_id"],
+                        "a": child["id"],
+                        "call": "started-effect",
+                        "digest": hashlib.sha256(b"{}").hexdigest(),
+                    },
+                )
+        other_project = client.post(
+            "/api/projects", json={"name": "Other terminal scope"}, headers=ORIGIN
+        ).json()["id"]
+        assert (
+            client.post(
+                f"/api/projects/{other_project}/work-orders/{order_id}/team-session/"
+                f"sessions/{child['session_id']}/reconcile",
+                headers=ORIGIN,
+            ).status_code
+            == 404
+        )
+        reconciled = client.post(f"{base}/sessions/{child['session_id']}/reconcile", headers=ORIGIN)
+        assert reconciled.status_code == 200, reconciled.text
+        assert reconciled.json() == {"reconciled_actions": 1 if damage in (None, "started") else 0}
+        repeated = client.post(f"{base}/sessions/{child['session_id']}/reconcile", headers=ORIGIN)
+        assert repeated.status_code == 200
+        assert repeated.json() == {"reconciled_actions": 0}
+        view = client.get(f"{base}/sessions/{child['session_id']}").json()
+        attempt = next(item for item in view["attempts"] if item["id"] == str(child["id"]))
+        assert attempt["status"] == "unknown"
+        assert attempt["terminal_result_reconciled"] is (damage is None)
+        if damage is None:
+            stale_acknowledge = client.post(
+                f"{base}/sessions/{child['session_id']}/attempts/{child['id']}/acknowledge",
+                json={
+                    "client_action_id": str(uuid4()),
+                    "decision": "abandon_unverified",
+                    "reason": "A stale tab cannot abandon this verified result.",
+                },
+                headers=ORIGIN,
+            )
+            assert stale_acknowledge.status_code == 409
+        with engine.connect() as connection:
+            events = connection.scalar(
+                text(
+                    "SELECT count(*) FROM events WHERE project_id=:p "
+                    "AND event_type='task_session_terminal_attempt_reconciled' "
+                    "AND payload->>'attempt_id'=:a"
+                ),
+                {"p": UUID(project_id), "a": str(child["id"])},
+            )
+        assert events == (1 if damage is None else 0)
+        engine.dispose()
+
+
+def test_terminal_qa_rejection_reconciles_without_turning_blocker_into_pass(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project_id, order_id, root_id, gateway = _team_turn(client, settings, "Saved QA rejection")
+        project = UUID(project_id)
+        base = f"/api/projects/{project_id}/work-orders/{order_id}/team-session"
+        profiles = {
+            row["name"]: row["id"] for row in client.get(f"/api/projects/{project_id}/profiles").json()
+        }
+        attempts = TaskSessionAttempts(gateway)
+        assignments = TaskSessionAssignments(gateway)
+        chief = attempts.claim_next(project)
+        assert chief is not None
+        researcher = assignments.delegate(
+            project,
+            UUID(root_id),
+            chief["id"],
+            DelegateRequest(
+                client_action_id=uuid4(),
+                profile_id=UUID(profiles["Researcher"]),
+                objective="Collect the source claim.",
+                expected_result="One confirmed finding.",
+                acceptance_check="Save the finding.",
+            ),
+        )
+        qa = assignments.delegate(
+            project,
+            UUID(root_id),
+            chief["id"],
+            DelegateRequest(
+                client_action_id=uuid4(),
+                profile_id=UUID(profiles["QA"]),
+                objective="Check the source claim.",
+                expected_result="Independent verdict.",
+                acceptance_check="Reject unsupported claims.",
+                acceptance_kind="qa_review",
+                depends_on=(researcher["id"],),
+            ),
+        )
+        attempts.settle(project, chief["id"], "done", public_reply="Reviews assigned.")
+        research_turn = attempts.claim_next(project)
+        assert research_turn is not None and research_turn["session_id"] == researcher["child_session_id"]
+        reported = TaskSessionTools(
+            gateway, project, research_turn["session_id"], research_turn["id"]
+        ).invoke("onefoundry.report_result", {"body": "Unsupported claim found."}, "source-result")
+        assert reported["success"] is True
+        attempts.settle(project, research_turn["id"], "done", public_reply=None)
+        qa_turn = attempts.claim_next(project)
+        assert qa_turn is not None and qa_turn["session_id"] == qa["child_session_id"]
+        bind_team_run(gateway, project, qa_turn)
+        rejected = TaskSessionTools(gateway, project, qa_turn["session_id"], qa_turn["id"]).invoke(
+            "onefoundry.report_result",
+            {"body": "Reject unsupported claim.", "verdict": "needs_rework"},
+            "qa-rejection",
+        )
+        assert rejected["success"] is True
+        attempts.settle(project, qa_turn["id"], "unknown", reason="team_tool_outcome_unknown")
+        response = client.post(f"{base}/sessions/{qa_turn['session_id']}/reconcile", headers=ORIGIN)
+        assert response.status_code == 200, response.text
+        assert response.json() == {"reconciled_actions": 1}
+        view = client.get(f"{base}/sessions/{qa_turn['session_id']}").json()
+        attempt = next(item for item in view["attempts"] if item["id"] == str(qa_turn["id"]))
+        assert attempt["status"] == "unknown"
+        assert attempt["terminal_result_reconciled"] is True
+        assert (
+            next(item for item in view["assignments"] if item["id"] == str(qa["id"]))["status"] == "blocked"
+        )
         gateway.engine.dispose()

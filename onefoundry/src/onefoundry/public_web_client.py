@@ -32,9 +32,17 @@ class PublicWebError(Exception):
 class PublicWebUnavailable(PublicWebError):
     """The configured source or network dependency is unavailable."""
 
+    def __init__(self, message: str, *, code: str = "web_dependency_unavailable") -> None:
+        super().__init__(message)
+        self.code = code
+
 
 class PublicWebRejected(PublicWebError):
     """The destination, argument, or response violated public-read policy."""
+
+    def __init__(self, message: str, *, code: str = "web_policy_rejected") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class PublicWebTimedOut(PublicWebError):
@@ -64,7 +72,7 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
         plain = socket.create_connection((self._address, 443), timeout=self._remaining())
         try:
             if ipaddress.ip_address(plain.getpeername()[0]) != ipaddress.ip_address(self._address):
-                raise PublicWebRejected("public web peer address changed")
+                raise PublicWebRejected("public web peer address changed", code="web_target_peer_changed")
             plain.settimeout(self._remaining())
             self.sock = self._ssl_context.wrap_socket(plain, server_hostname=self.host)
             self.sock.settimeout(self._remaining())
@@ -104,43 +112,42 @@ class _PageText(HTMLParser):
 
 
 def _clean(value: str, limit: int) -> str:
+    return _clean_excerpt(value, limit)[0]
+
+
+def _clean_excerpt(value: str, limit: int) -> tuple[str, bool]:
     if SECRET_PATTERN.search(value):
-        raise PublicWebRejected("public web content was rejected")
-    result = re.sub(r"\s+", " ", value).strip()[:limit]
-    return result
+        raise PublicWebRejected("public web content was rejected", code="web_content_sensitive")
+    normalized = re.sub(r"\s+", " ", value).strip()
+    return normalized[:limit], len(normalized) > limit
 
 
 def _target(url: str) -> tuple[str, str, str]:
     if not isinstance(url, str) or len(url.encode("utf-8")) > 2048 or any(ord(c) < 32 for c in url):
-        raise PublicWebRejected("invalid public HTTPS URL")
+        raise PublicWebRejected("invalid public HTTPS URL", code="web_target_invalid")
     try:
         parsed = urlsplit(url)
         host = parsed.hostname
         port = parsed.port
     except ValueError:
-        raise PublicWebRejected("invalid public HTTPS URL") from None
-    if (
-        parsed.scheme != "https"
-        or host is None
-        or parsed.username is not None
-        or parsed.password is not None
-        or port not in (None, 443)
-        or not parsed.netloc
-    ):
-        raise PublicWebRejected("invalid public HTTPS URL")
+        raise PublicWebRejected("invalid public HTTPS URL", code="web_target_invalid") from None
+    if parsed.username is not None or parsed.password is not None:
+        raise PublicWebRejected("invalid public HTTPS URL", code="web_target_credentials")
+    if parsed.scheme != "https" or host is None or port not in (None, 443) or not parsed.netloc:
+        raise PublicWebRejected("invalid public HTTPS URL", code="web_target_invalid")
     try:
         ascii_host = host.encode("idna").decode("ascii").lower().rstrip(".")
     except UnicodeError:
-        raise PublicWebRejected("invalid public HTTPS URL") from None
+        raise PublicWebRejected("invalid public HTTPS URL", code="web_target_invalid") from None
     if not ascii_host or len(ascii_host) > 253 or any(c in ascii_host for c in "/%\\"):
-        raise PublicWebRejected("invalid public HTTPS URL")
+        raise PublicWebRejected("invalid public HTTPS URL", code="web_target_invalid")
     # Reject literal local addresses before the resolver is invoked.
     try:
         literal = ipaddress.ip_address(ascii_host)
     except ValueError:
         literal = None
     if literal is not None and not literal.is_global:
-        raise PublicWebRejected("public HTTPS target is unavailable")
+        raise PublicWebRejected("public HTTPS target is unavailable", code="web_target_not_public")
     path = parsed.path or "/"
     if parsed.query:
         path += "?" + parsed.query
@@ -169,14 +176,18 @@ class PublicWebClient:
             answers = self._resolver(host, 443, type=socket.SOCK_STREAM)
             addresses = [str(answer[4][0]) for answer in answers]
         except (OSError, ValueError, IndexError, TypeError):
-            raise PublicWebUnavailable("public HTTPS target is unavailable") from None
+            raise PublicWebUnavailable(
+                "public HTTPS target is unavailable", code="web_dns_unavailable"
+            ) from None
         if not addresses:
-            raise PublicWebUnavailable("public HTTPS target is unavailable")
+            raise PublicWebUnavailable("public HTTPS target is unavailable", code="web_dns_unavailable")
         try:
             if any(not ipaddress.ip_address(ip).is_global for ip in addresses):
-                raise PublicWebRejected("public HTTPS target is unavailable")
+                raise PublicWebRejected("public HTTPS target is unavailable", code="web_target_not_public")
         except ValueError:
-            raise PublicWebUnavailable("public HTTPS target is unavailable") from None
+            raise PublicWebUnavailable(
+                "public HTTPS target is unavailable", code="web_dns_unavailable"
+            ) from None
         return addresses[0]
 
     def _read(
@@ -188,7 +199,7 @@ class PublicWebClient:
         internal_search: bool = False,
     ) -> tuple[str, str, bytes]:
         if not 1 <= timeout_seconds <= 30 or not 1024 <= max_response_bytes <= 2_000_000:
-            raise PublicWebRejected("public web limits are invalid")
+            raise PublicWebRejected("public web limits are invalid", code="web_limits_invalid")
         deadline = monotonic() + timeout_seconds
         if not _READ_SLOTS.acquire(timeout=timeout_seconds):
             raise PublicWebTimedOut("public web request timed out")
@@ -220,7 +231,9 @@ class PublicWebClient:
             Thread(target=read, daemon=True, name="onefoundry-public-web").start()
         except RuntimeError:
             _READ_SLOTS.release()
-            raise PublicWebUnavailable("public web worker is unavailable") from None
+            raise PublicWebUnavailable(
+                "public web worker is unavailable", code="web_worker_unavailable"
+            ) from None
         try:
             success, value = completed.get(timeout=max(0, deadline - monotonic()))
         except Empty:
@@ -234,9 +247,9 @@ class PublicWebClient:
         if not success:
             if isinstance(value, PublicWebError):
                 raise value
-            raise PublicWebUnavailable("public web request failed")
+            raise PublicWebUnavailable("public web request failed", code="web_network_unavailable")
         if not isinstance(value, tuple):
-            raise PublicWebUnavailable("public web request failed")
+            raise PublicWebUnavailable("public web request failed", code="web_network_unavailable")
         return value
 
     def _read_blocking(
@@ -252,7 +265,9 @@ class PublicWebClient:
         if internal_search:
             parsed = urlsplit(url)
             if parsed.scheme != "http" or parsed.netloc != "searxng:8080" or parsed.path != "/search":
-                raise PublicWebRejected("public search endpoint is invalid")
+                raise PublicWebRejected(
+                    "public search endpoint is invalid", code="web_search_endpoint_invalid"
+                )
             host, path, normalized = "searxng", "/search?" + parsed.query, url
             address = None
         else:
@@ -289,16 +304,22 @@ class PublicWebClient:
             if monotonic() >= deadline:
                 raise PublicWebTimedOut("public web request timed out")
             if response.status != 200:
-                raise PublicWebUnavailable("public web request was unsuccessful")
+                raise PublicWebUnavailable(
+                    "public web request was unsuccessful", code="web_http_status_unavailable"
+                )
             encoding = response.getheader("Content-Encoding", "identity")
             if encoding is None or encoding.lower() != "identity":
-                raise PublicWebRejected("compressed public web content is unavailable")
+                raise PublicWebRejected(
+                    "compressed public web content is unavailable", code="web_response_compressed"
+                )
             declared = response.getheader("Content-Length")
             if declared is not None and (not declared.isdigit() or int(declared) > max_response_bytes):
-                raise PublicWebRejected("public web content exceeded limit")
+                raise PublicWebRejected("public web content exceeded limit", code="web_response_too_large")
             content_type = (response.getheader("Content-Type") or "").split(";", 1)[0].strip().lower()
             if content_type not in {"text/html", "text/plain", "application/json"}:
-                raise PublicWebRejected("public web content type is unavailable")
+                raise PublicWebRejected(
+                    "public web content type is unavailable", code="web_response_content_type"
+                )
             chunks: list[bytes] = []
             total = 0
             while True:
@@ -317,7 +338,9 @@ class PublicWebClient:
                     break
                 total += len(chunk)
                 if total > max_response_bytes:
-                    raise PublicWebRejected("public web content exceeded limit")
+                    raise PublicWebRejected(
+                        "public web content exceeded limit", code="web_response_too_large"
+                    )
                 chunks.append(chunk)
             payload = b"".join(chunks)
             if monotonic() >= deadline:
@@ -326,7 +349,7 @@ class PublicWebClient:
         except TimeoutError:
             raise PublicWebTimedOut("public web request timed out") from None
         except (OSError, http.client.HTTPException, ssl.SSLError):
-            raise PublicWebUnavailable("public web request failed") from None
+            raise PublicWebUnavailable("public web request failed", code="web_network_unavailable") from None
         finally:
             connection.close()
 
@@ -339,25 +362,29 @@ class PublicWebClient:
         max_response_bytes: int,
     ) -> dict[str, Any]:
         if not endpoint:
-            raise PublicWebUnavailable("public search is not configured")
+            raise PublicWebUnavailable("public search is not configured", code="web_search_not_configured")
         if not 1 <= max_results <= 20:
-            raise PublicWebRejected("public search limit is invalid")
+            raise PublicWebRejected("public search limit is invalid", code="web_limits_invalid")
         try:
             safe_query = local_text(query)
         except ValueError:
-            raise PublicWebRejected("public search query is invalid") from None
+            raise PublicWebRejected(
+                "public search query is invalid", code="web_search_query_invalid"
+            ) from None
         if len(safe_query.encode("utf-8")) > 240:
-            raise PublicWebRejected("public search query is invalid")
+            raise PublicWebRejected("public search query is invalid", code="web_search_query_invalid")
         internal = endpoint == "http://searxng:8080/search"
         if not internal:
             host, path, _ = _target(endpoint)
             if path != "/search":
-                raise PublicWebRejected("public search endpoint is invalid")
+                raise PublicWebRejected(
+                    "public search endpoint is invalid", code="web_search_endpoint_invalid"
+                )
         else:
             host = "searxng:8080"
         parsed = urlsplit(endpoint)
         if parsed.query or parsed.fragment or (parsed.scheme == "http" and not internal):
-            raise PublicWebRejected("public search endpoint is invalid")
+            raise PublicWebRejected("public search endpoint is invalid", code="web_search_endpoint_invalid")
         request_url = urlunsplit(
             (parsed.scheme, host, "/search", urlencode({"q": safe_query, "format": "json"}), "")
         )
@@ -368,13 +395,15 @@ class PublicWebClient:
             internal_search=internal,
         )
         if content_type != "application/json":
-            raise PublicWebRejected("public search response is invalid")
+            raise PublicWebRejected("public search response is invalid", code="web_search_response_invalid")
         try:
             document = json.loads(payload)
         except (ValueError, UnicodeDecodeError):
-            raise PublicWebRejected("public search response is invalid") from None
+            raise PublicWebRejected(
+                "public search response is invalid", code="web_search_response_invalid"
+            ) from None
         if not isinstance(document, dict) or not isinstance(document.get("results"), list):
-            raise PublicWebRejected("public search response is invalid")
+            raise PublicWebRejected("public search response is invalid", code="web_search_response_invalid")
         results: list[dict[str, str | None]] = []
         for item in document["results"]:
             if not isinstance(item, dict):
@@ -417,25 +446,28 @@ class PublicWebClient:
         max_text_chars: int,
     ) -> dict[str, Any]:
         if not 1 <= max_text_chars <= 16000:
-            raise PublicWebRejected("public page text limit is invalid")
+            raise PublicWebRejected("public page text limit is invalid", code="web_limits_invalid")
         source, content_type, payload = self._read(
             url, timeout_seconds=timeout_seconds, max_response_bytes=max_response_bytes
         )
         if content_type not in {"text/html", "text/plain"}:
-            raise PublicWebRejected("public page content type is unavailable")
+            raise PublicWebRejected(
+                "public page content type is unavailable", code="web_response_content_type"
+            )
         decoded = payload.decode("utf-8", errors="replace")
         if content_type == "text/html":
             parser = _PageText()
             parser.feed(decoded)
             title = _clean(" ".join(parser.title), 240)
-            page_text = _clean(" ".join(parser.body), max_text_chars)
+            page_text, text_truncated = _clean_excerpt(" ".join(parser.body), max_text_chars)
         else:
             title = ""
-            page_text = _clean(decoded, max_text_chars)
+            page_text, text_truncated = _clean_excerpt(decoded, max_text_chars)
         return {
             "url": source,
             "fetched_at": datetime.now(UTC).isoformat(),
             "title": title,
             "text": page_text,
+            "text_truncated": text_truncated,
             "published_at": None,
         }

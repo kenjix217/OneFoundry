@@ -32,6 +32,7 @@ from onefoundry.role_tool_admission import (
     ToolRepositoryReadFailure,
     ToolTimedOut,
 )
+from onefoundry.role_web_admission import WebDependencyFailure, WebPolicyFailure, saved_web_correction
 from onefoundry.task_session_assignments import DelegateRequest, DependencyNotAccepted, TaskSessionAssignments
 from onefoundry.task_session_dependency_context import DependencyPageArgs, read_dependency_page
 from onefoundry.task_session_store import TaskSessionStore, TeamLimitReached
@@ -865,12 +866,19 @@ class TaskSessionTools:
                 if name == ROLE
                 else None
             )
+            web_correction = (
+                saved_web_correction(prior["reason"], str(arguments.get("tool_id", "")))
+                if name == ROLE
+                else None
+            )
             correction = (
                 InspectionStateChanged.correction()
                 if prior["reason"] == InspectionStateChanged.code
                 else DependencyNotAccepted.correction()
                 if prior["reason"] == DependencyNotAccepted.code
-                else repository_correction or task_session_report_contract.correction(prior["reason"])
+                else repository_correction
+                or web_correction
+                or task_session_report_contract.correction(prior["reason"])
             )
             return _response(False, correction)
         try:
@@ -893,6 +901,9 @@ class TaskSessionTools:
             self._finish(scope, prior["id"], result=None, reason=exc.code)
             return _response(False, exc.correction())
         except ToolRepositoryReadFailure as exc:
+            self._finish(scope, prior["id"], result=None, reason=exc.code)
+            return _response(False, exc.as_correction())
+        except (WebDependencyFailure, WebPolicyFailure) as exc:
             self._finish(scope, prior["id"], result=None, reason=exc.code)
             return _response(False, exc.as_correction())
         except (ToolDependencyFailure, ToolOutputRejected, ToolPolicyRejected, ToolTimedOut) as exc:

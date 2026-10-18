@@ -397,11 +397,12 @@ class TaskSessionAttempts:
     ) -> dict[str, Any]:
         """Settle one turn. `retryable` means the provider provably never processed it."""
         if outcome == "done":
-            if reason is not None or public_reply is None:
-                raise ValueError("a completed turn requires a public reply and no error reason")
-            public_reply = local_text(public_reply)
-            if len(public_reply) > 16000:
-                raise ValueError("public reply exceeds the saved message limit")
+            if reason is not None:
+                raise ValueError("a completed turn cannot have an error reason")
+            if public_reply is not None:
+                public_reply = local_text(public_reply)
+                if len(public_reply) > 16000:
+                    raise ValueError("public reply exceeds the saved message limit")
         elif reason is None or public_reply is not None:
             raise ValueError("a stopped turn requires a reason and no reply")
         if reason is not None and (len(reason) > 160 or not reason.replace("_", "").isalnum()):
@@ -431,6 +432,16 @@ class TaskSessionAttempts:
                 raise NotFound("team attempt not found")
             if row["execution_mode"] != "team" or row["status"] != "running":
                 raise Conflict("team attempt is not running")
+            if outcome == "done" and public_reply is None:
+                from onefoundry.task_session_terminal_reconciliation import confirmed_terminal_receipt
+
+                if (
+                    confirmed_terminal_receipt(
+                        connection, project_id, attempt_id, row["session_id"], row["root_work_order_id"]
+                    )
+                    is None
+                ):
+                    raise Conflict("a completed turn needs a public reply or confirmed terminal receipt")
             if provider_thread_id is not None and row["provider_thread_id"] not in (None, provider_thread_id):
                 raise Conflict("provider thread changed for the attempt")
             if provider_turn_id is not None and row["provider_turn_id"] not in (None, provider_turn_id):

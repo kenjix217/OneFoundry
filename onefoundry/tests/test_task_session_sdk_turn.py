@@ -409,3 +409,178 @@ def test_default_sdk_attempt_can_finish_after_more_than_eight_tool_calls(streame
     assert (result.status, result.reason) == ("done", None)
     assert saved.invoke.call_count == 10
     assert len({call.args[2] for call in saved.invoke.call_args_list}) == 10
+
+
+@pytest.mark.parametrize("streamed", [False, True])
+def test_successful_report_result_stops_before_another_model_call(streamed: bool) -> None:
+    import asyncio
+    import json
+
+    from agents.testing import ModelStep, ScriptedModel, assistant_message, function_call
+
+    from onefoundry.task_session_sdk_turn import _run
+    from onefoundry.task_session_tools import TaskSessionTools
+
+    saved = Mock(spec=TaskSessionTools)
+    saved.invoke.return_value = {
+        "success": True,
+        "contentItems": [{"type": "inputText", "text": json.dumps({"status": "saved"})}],
+    }
+    model = ScriptedModel(
+        [
+            ModelStep(
+                output=[function_call("report_result", {"body": "Verified finding."}, call_id="report-ok")]
+            ),
+            ModelStep(output=[assistant_message("A stale extra model call happened.")]),
+        ]
+    )
+    spec = {
+        "name": "report_result",
+        "description": "Save a result",
+        "inputSchema": {"type": "object", "properties": {"body": {"type": "string"}}},
+    }
+    outcome = asyncio.run(
+        _run(
+            TeamModel(model, "fixture", "fixture", streamed, False),
+            "Report",
+            [spec],
+            saved,
+            None,
+            SETTINGS.model_copy(update={"team_turn_timeout_seconds": 2}),
+        )
+    )
+    assert (outcome.status, outcome.reply) == ("done", None)
+    assert model.remaining_steps == 1
+    saved.invoke.assert_called_once()
+
+
+def test_failed_report_result_stays_nonterminal_and_can_receive_correction() -> None:
+    import asyncio
+    import json
+
+    from agents.testing import ModelStep, ScriptedModel, assistant_message, function_call
+
+    from onefoundry.task_session_sdk_turn import _run
+    from onefoundry.task_session_tools import TaskSessionTools
+
+    saved = Mock(spec=TaskSessionTools)
+    saved.invoke.return_value = {
+        "success": False,
+        "contentItems": [{"type": "inputText", "text": json.dumps({"reason": "invalid_tool_input"})}],
+    }
+    model = ScriptedModel(
+        [
+            ModelStep(
+                output=[function_call("report_result", {"body": "Invalid finding."}, call_id="report-bad")]
+            ),
+            ModelStep(output=[assistant_message("Report rejected; a corrected source is needed.")]),
+        ]
+    )
+    spec = {
+        "name": "report_result",
+        "description": "Save a result",
+        "inputSchema": {"type": "object", "properties": {"body": {"type": "string"}}},
+    }
+    outcome = asyncio.run(
+        _run(
+            TeamModel(model, "fixture", "fixture", False, False),
+            "Report",
+            [spec],
+            saved,
+            None,
+            SETTINGS.model_copy(update={"team_turn_timeout_seconds": 2}),
+        )
+    )
+    assert (outcome.status, outcome.reply) == ("done", "Report rejected; a corrected source is needed.")
+    assert model.remaining_steps == 0
+    saved.invoke.assert_called_once()
+
+
+def test_successful_submit_completion_keeps_submitted_public_reply() -> None:
+    import asyncio
+    import json
+
+    from agents.testing import ModelStep, ScriptedModel, assistant_message, function_call
+
+    from onefoundry.task_session_sdk_turn import _run
+    from onefoundry.task_session_tools import TaskSessionTools
+
+    saved = Mock(spec=TaskSessionTools)
+    saved.invoke.return_value = {
+        "success": True,
+        "contentItems": [{"type": "inputText", "text": json.dumps({"status": "needs_review"})}],
+    }
+    model = ScriptedModel(
+        [
+            ModelStep(
+                output=[
+                    function_call("submit_completion", {"body": "Finished after QA."}, call_id="complete-ok")
+                ]
+            ),
+            ModelStep(output=[assistant_message("A stale extra model call happened.")]),
+        ]
+    )
+    spec = {
+        "name": "submit_completion",
+        "description": "Submit the completion",
+        "inputSchema": {"type": "object", "properties": {"body": {"type": "string"}}},
+    }
+    outcome = asyncio.run(
+        _run(
+            TeamModel(model, "fixture", "fixture", False, False),
+            "Complete",
+            [spec],
+            saved,
+            None,
+            SETTINGS.model_copy(update={"team_turn_timeout_seconds": 2}),
+        )
+    )
+    assert (outcome.status, outcome.reply) == ("done", None)
+    assert model.remaining_steps == 1
+    saved.invoke.assert_called_once()
+
+
+def test_second_tool_in_terminal_model_response_does_not_enter_closed_session() -> None:
+    import asyncio
+    import json
+
+    from agents.testing import ModelStep, ScriptedModel, function_call
+
+    from onefoundry.task_session_sdk_turn import _run
+    from onefoundry.task_session_tools import TaskSessionTools
+
+    saved = Mock(spec=TaskSessionTools)
+    saved.invoke.return_value = {
+        "success": True,
+        "contentItems": [{"type": "inputText", "text": json.dumps({"status": "saved"})}],
+    }
+    model = ScriptedModel(
+        [
+            ModelStep(
+                output=[
+                    function_call("report_result", {"body": "Verified finding."}, call_id="report-ok"),
+                    function_call("publish_update", {"body": "Stale update."}, call_id="update-stale"),
+                ]
+            )
+        ]
+    )
+    specs = [
+        {
+            "name": name,
+            "description": f"Use {name}",
+            "inputSchema": {"type": "object", "properties": {"body": {"type": "string"}}},
+        }
+        for name in ("report_result", "publish_update")
+    ]
+    outcome = asyncio.run(
+        _run(
+            TeamModel(model, "fixture", "fixture", False, False),
+            "Report",
+            specs,
+            saved,
+            None,
+            SETTINGS.model_copy(update={"team_turn_timeout_seconds": 2}),
+        )
+    )
+    assert (outcome.status, outcome.reply) == ("done", None)
+    saved.invoke.assert_called_once()

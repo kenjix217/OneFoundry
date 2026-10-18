@@ -145,26 +145,27 @@ export function TaskSessionView({ projectId, orderId, profiles, reloadKey, onOpe
   const waitingForInput = assignment?.status === 'pending';
   const canWrite = !!session && session.id === activeId && session.execution_mode === 'team' && session.status !== 'closed' &&
     (!session.work_order_status || ['ready', 'running'].includes(session.work_order_status)) &&
-    !current?.attempts.some((item) => item.status === 'unknown' && !item.unknown_acknowledged);
+    !current?.attempts.some((item) => item.status === 'unknown' && !item.unknown_acknowledged && !item.terminal_result_reconciled);
   const canRework = !!session && session.id === activeId && session.execution_mode === 'team' &&
     session.status === 'closed' && session.work_order_status === 'needs_review' &&
     assignment?.status === 'satisfied' && !!assignment.result_message_id && ['artifact', 'text_report'].includes(assignment.acceptance_kind ?? '') &&
     !!root && root.session.status !== 'closed' && root.session.execution_mode === 'team' &&
     ['ready', 'running', 'needs_review'].includes(root.session.work_order_status ?? '') &&
-    !root.attempts.some((item) => item.status === 'queued' || item.status === 'running' || item.status === 'unknown' && !item.unknown_acknowledged) &&
-    !current?.attempts.some((item) => item.status === 'queued' || item.status === 'running' || item.status === 'unknown' && !item.unknown_acknowledged) &&
+    !root.attempts.some((item) => item.status === 'queued' || item.status === 'running' || item.status === 'unknown' && !item.unknown_acknowledged && !item.terminal_result_reconciled) &&
+    !current?.attempts.some((item) => item.status === 'queued' || item.status === 'running' || item.status === 'unknown' && !item.unknown_acknowledged && !item.terminal_result_reconciled) &&
     !current?.tool_calls.some((item) => item.status === 'started') &&
     !root.children.some((item) => item.status === 'working');
   const canContinue = canWrite && session?.waiting_reason !== 'local_recording' && session?.waiting_reason !== 'recording_unconfirmed' && !activeAttempt && !waitingForInput && !saving && !pending;
   const lastAttempt = current?.attempts.at(-1);
   const uncertainActions = current?.tool_calls.some((item) => item.status === 'started');
-  const unacknowledged = current?.attempts.find((item) => item.status === 'unknown' && !item.unknown_acknowledged);
+  const unacknowledged = current?.attempts.find((item) => item.status === 'unknown' && !item.unknown_acknowledged && !item.terminal_result_reconciled);
+  const [checkedAttemptId, setCheckedAttemptId] = useState<string | null>(null);
   const [ackReason, setAckReason] = useState('');
   const ackAction = useRef<string | null>(null);
-  useEffect(() => { ackAction.current = null; setAckReason(''); }, [activeId]);
+  useEffect(() => { ackAction.current = null; setAckReason(''); setCheckedAttemptId(null); }, [activeId]);
 
   async function abandonUnknown() {
-    if (!session || !unacknowledged || activeAttempt || uncertainActions || saving || ackReason.trim().length < 10) return;
+    if (!session || !unacknowledged || activeAttempt || uncertainActions || saving || checkedAttemptId !== unacknowledged.id || ackReason.trim().length < 10) return;
     setSaving(true); setError(null);
     try {
       ackAction.current ??= crypto.randomUUID();
@@ -180,6 +181,9 @@ export function TaskSessionView({ projectId, orderId, profiles, reloadKey, onOpe
     setSaving(true); setError(null);
     try {
       const count = await reconcileTeamActions(projectId, orderId, session.id);
+      const saved = await getTeamSession(projectId, orderId, session.id);
+      setCheckedAttemptId(unacknowledged && saved.attempts.some((item) => item.id === unacknowledged.id &&
+        item.status === 'unknown' && !item.unknown_acknowledged && !item.terminal_result_reconciled) ? unacknowledged.id : null);
       setNotice(`${count} saved action receipts reconciled. No agent turn was launched.`);
       setRevision((value) => value + 1);
     } catch (cause) { setError(errorMessage(cause)); }
@@ -317,14 +321,14 @@ export function TaskSessionView({ projectId, orderId, profiles, reloadKey, onOpe
           The provider did not accept the last request, so this agent will retry it once shortly.</p>}
         {waitingForInput && <p className="task-chat-guidance">This agent is waiting for its declared input. Your message will be saved for its next turn.</p>}
         {lastAttempt && (lastAttempt.status === 'failed' || lastAttempt.status === 'unknown') &&
-          <p className="task-chat-guidance">{lastAttempt.status === 'unknown' ? 'Outcome unknown' : 'Attempt failed'}: {lastAttempt.reason
+          <p className="task-chat-guidance">{lastAttempt.terminal_result_reconciled ? 'Saved terminal result reconciled' : lastAttempt.status === 'unknown' ? 'Outcome unknown' : 'Attempt failed'}: {lastAttempt.reason
             ? safeActivityText(lastAttempt.reason).replaceAll('_', ' ').slice(0, 240) : 'No stop reason recorded.'} Confirmed work remains saved.</p>}
         {session?.status === 'closed' && <p className="task-chat-guidance">{canRework
           ? 'Describe the revision and include its required source text. Returning this assignment keeps previous results and queues one new turn.'
           : 'This assignment is closed. Ask the Chief of Staff for a new revision if more work is needed.'}</p>}
-        {uncertainActions && !activeAttempt && <button className="button button-outline" type="button" disabled={saving}
+        {(uncertainActions || unacknowledged) && !activeAttempt && <button className="button button-outline" type="button" disabled={saving}
           onClick={() => { void reconcile(); }}>Reconcile saved actions</button>}
-        {unacknowledged && !activeAttempt && <fieldset disabled={saving || uncertainActions}>
+        {unacknowledged && !activeAttempt && <fieldset disabled={saving || uncertainActions || checkedAttemptId !== unacknowledged.id}>
           <legend>Unknown outcome needs your decision</legend>
           <p>Reconcile saved actions first. Abandoning the unverified result preserves the unknown history and permits separate work; it does not confirm success or replay the attempt.</p>
           <label>Reason for abandoning the unverified result

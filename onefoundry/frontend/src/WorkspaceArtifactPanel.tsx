@@ -4,7 +4,7 @@ import { SavedVideoPlayer } from './SavedVideoPlayer';
 import { getWorkspaceArtifact, listWorkspaceArtifacts,
   type WorkspaceArtifact, type WorkspaceArtifactPreview } from './workspaceArtifactApi';
 
-type Props = { projectId: string; runId: string };
+type Props = { projectId: string; runId: string; initialArtifactId?: string };
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : 'Saved artifact readback is unavailable.';
@@ -15,7 +15,7 @@ function time(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
-export function WorkspaceArtifactPanel({ projectId, runId }: Props) {
+export function WorkspaceArtifactPanel({ projectId, runId, initialArtifactId }: Props) {
   const [artifacts, setArtifacts] = useState<WorkspaceArtifact[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export function WorkspaceArtifactPanel({ projectId, runId }: Props) {
     setArtifacts([]);
     setLoading(true);
     setListError(null);
-    setPreviewId(null);
+    setPreviewId(initialArtifactId ?? null);
     setPreview(null);
     setPreviewError(null);
     void listWorkspaceArtifacts(projectId, runId, controller.signal).then((items) => {
@@ -44,7 +44,7 @@ export function WorkspaceArtifactPanel({ projectId, runId }: Props) {
       setLoading(false);
     });
     return () => controller.abort();
-  }, [projectId, runId, reload]);
+  }, [projectId, runId, reload, initialArtifactId]);
 
   useEffect(() => {
     if (!previewId) return;

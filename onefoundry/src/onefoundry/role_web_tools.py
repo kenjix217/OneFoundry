@@ -162,6 +162,7 @@ class FetchOutput(StrictModel):
     url: str = Field(min_length=1, max_length=2048, strict=True)
     title: str = Field(max_length=512, strict=True)
     text: str = Field(max_length=16000, strict=True)
+    text_truncated: bool = Field(default=False, strict=True)
     published_at: datetime | None
     fetched_at: datetime
 
@@ -240,7 +241,8 @@ WEB_TOOLS: dict[str, WebTool] = {
         tool_id=FETCH_TOOL_ID,
         version=1,
         description="Fetch bounded text from a public HTTPS URL returned by public_web_search_v1 "
-        "in this same run, with its source URL and date.",
+        "in this same run, with its source URL and date. Check text_truncated before treating it "
+        "as a complete page.",
         parameters=FETCH_PARAMETERS,
         parse_arguments=parse_fetch,
         execute=execute_fetch,

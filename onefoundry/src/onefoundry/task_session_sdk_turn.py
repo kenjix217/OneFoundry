@@ -26,13 +26,14 @@ from agents import (
     ModelSettings,
     RunConfig,
     Runner,
+    ToolsToFinalOutputResult,
     set_tracing_disabled,
 )
 from agents import _debug as agents_debug
 from agents.models.interface import Model
 from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
 from agents.models.openai_responses import OpenAIResponsesModel
-from agents.tool import set_function_tool_failure_error_function
+from agents.tool import FunctionToolResult, set_function_tool_failure_error_function
 from agents.tool_context import ToolContext
 from openai import (
     APIConnectionError,
@@ -204,6 +205,11 @@ class TurnOutcome:
     retryable: bool = False
 
 
+@dataclass
+class _TerminalTurnState:
+    saved: bool = False
+
+
 def _cause(error: BaseException, kinds: tuple[type[BaseException], ...]) -> BaseException | None:
     current: BaseException | None = error
     for _ in range(8):
@@ -251,7 +257,9 @@ def classify_failure(error: BaseException) -> TurnOutcome:
     return TurnOutcome("unknown", "provider_outcome_unknown")
 
 
-def _function_tools(specifications: list[dict[str, Any]], tools: TaskSessionTools) -> list[FunctionTool]:
+def _function_tools(
+    specifications: list[dict[str, Any]], tools: TaskSessionTools, terminal: _TerminalTurnState
+) -> list[FunctionTool]:
     lock = asyncio.Lock()
     calls = 0
     output: list[FunctionTool] = []
@@ -261,6 +269,8 @@ def _function_tools(specifications: list[dict[str, Any]], tools: TaskSessionTool
         async def invoke(context: ToolContext[Any], raw: str, *, _name: str = name) -> str:
             nonlocal calls
             async with lock:
+                if terminal.saved:
+                    return json.dumps({"success": False, "reason": "terminal_result_already_saved"})
                 calls += 1
                 try:
                     arguments = json.loads(raw) if raw else {}
@@ -272,7 +282,12 @@ def _function_tools(specifications: list[dict[str, Any]], tools: TaskSessionTool
                 call_id = f"{calls}-{context.tool_call_id}"[:200]
                 response = await asyncio.to_thread(tools.invoke, f"onefoundry.{_name}", arguments, call_id)
                 content = json.loads(response["contentItems"][0]["text"])
-                return json.dumps({"success": response["success"], **content}, sort_keys=True)
+                result = {"success": response["success"], **content}
+                if response["success"] is True and _name == "report_result":
+                    terminal.saved = True
+                elif response["success"] is True and _name == "submit_completion":
+                    terminal.saved = True
+                return json.dumps(result, sort_keys=True)
 
         tool = FunctionTool(
             name=name,
@@ -286,6 +301,22 @@ def _function_tools(specifications: list[dict[str, Any]], tools: TaskSessionTool
     return output
 
 
+def _terminal_tool_result(
+    _context: Any, results: list[FunctionToolResult], terminal: _TerminalTurnState
+) -> ToolsToFinalOutputResult:
+    """A confirmed terminal receipt ends this SDK turn before stale tools can be called."""
+    for item in results:
+        if item.tool.name not in {"report_result", "submit_completion"} or not isinstance(item.output, str):
+            continue
+        try:
+            result = json.loads(item.output)
+        except ValueError:
+            continue
+        if isinstance(result, dict) and result.get("success") is True and terminal.saved:
+            return ToolsToFinalOutputResult(is_final_output=True, final_output="Saved terminal action.")
+    return ToolsToFinalOutputResult(is_final_output=False)
+
+
 async def _run(
     bound: TeamModel,
     prompt: str,
@@ -294,11 +325,13 @@ async def _run(
     effort: str | None,
     settings: Settings,
 ) -> TurnOutcome:
+    terminal = _TerminalTurnState()
     agent = Agent[None](
         name="OneFoundry team agent",
         instructions=TEAM_INSTRUCTIONS,
         model=bound.model,
-        tools=list(_function_tools(specifications, tools)),
+        tools=list(_function_tools(specifications, tools, terminal)),
+        tool_use_behavior=lambda context, results: _terminal_tool_result(context, results, terminal),
         model_settings=ModelSettings(
             # The ChatGPT-plan route rejects an output cap. Grok uses max_completion_tokens.
             max_tokens=(
@@ -339,6 +372,8 @@ async def _run(
         if bound.client is not None:
             await bound.client.close()
     used_in, used_out = usage.input_tokens, usage.output_tokens
+    if terminal.saved:
+        return TurnOutcome("done", input_tokens=used_in, output_tokens=used_out)
     if (
         not isinstance(final, str)
         or not final.strip()

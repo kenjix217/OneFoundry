@@ -57,6 +57,14 @@
 .chief-agents{display:flex;gap:6px;flex-wrap:wrap;padding:12px 34px;max-height:100px;overflow:auto}
 .chief-agents button{font-size:11px;border:1px solid var(--theme-border);padding:5px 10px}
 .chief-agents span{color:var(--theme-muted)}
+.chief-progress{padding:13px 34px;border-bottom:1px solid var(--theme-border);background:var(--theme-raised);font-size:12px;line-height:1.4}
+.chief-progress-heading{display:flex;align-items:center;gap:10px}
+.chief-progress-heading strong{font-size:12px}
+.chief-progress-heading span{font-size:10px;color:var(--theme-muted);border:1px solid var(--theme-border);border-radius:999px;padding:2px 7px}
+.chief-progress p{margin:5px 0 8px;overflow-wrap:anywhere}
+.chief-progress-counts{display:flex;gap:6px 13px;flex-wrap:wrap;color:var(--theme-muted);font-size:10px}
+.chief-workspace .chief-progress>button{padding:5px 0;margin-top:6px;color:var(--theme-accent);font-weight:600;text-align:left}
+.chief-progress>small{display:block;margin-top:6px;color:var(--theme-muted)}
 .chief-transcript{flex:1;min-height:0;overflow:auto;padding:25px max(34px,calc((100% - 780px)/2)) 20px;overscroll-behavior:contain}
 .chief-welcome{max-width:530px;margin:10vh auto;text-align:center;color:var(--theme-muted);line-height:1.65}
 .chief-welcome>span{font-size:34px;color:var(--theme-accent)}
@@ -68,8 +76,16 @@
 .chief-message .task-message-actions{margin-top:8px}
 .chief-message .task-message-icon{padding:4px;color:var(--theme-muted)}
 .chief-message .task-message-icon:hover{color:var(--theme-text);background:var(--theme-raised)}
-.chief-deliveries{display:flex;gap:9px;flex-wrap:wrap;margin:15px 0 24px}
-.chief-deliveries button{border:1px solid var(--theme-border);background:var(--theme-raised);font-size:12px}
+.chief-agent-handoff{border:1px solid var(--theme-border);background:var(--theme-raised);border-radius:10px;padding:12px 15px;font-size:12px}
+.chief-agent-handoff p{margin:0 0 5px;color:var(--theme-muted)}
+.chief-workspace .chief-agent-handoff button{padding:4px 0;color:var(--theme-accent);font-size:11px;font-weight:600}
+.chief-deliverables{margin:20px 0 24px}
+.chief-deliverables h2{font-size:13px;margin:0 0 10px}
+.chief-deliverables h2 small{color:var(--theme-muted);font-weight:400}
+.chief-deliverables-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:8px}
+.chief-deliverables-list button{display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:0;border:1px solid var(--theme-border);background:var(--theme-raised);font-size:11px;text-align:left;overflow-wrap:anywhere}
+.chief-deliverables-list button[aria-current=true]{border-color:var(--theme-accent)}
+.chief-deliverables-list button small{color:var(--theme-muted);white-space:nowrap}
 .chief-file-preview{background:var(--theme-raised);padding:20px;border-radius:12px;margin-bottom:24px;min-width:0}
 .chief-file-preview pre,.chief-agent-panel pre,.chief-history pre,.chief-approval pre{max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px}
 .chief-history{color:var(--theme-muted);font-size:11px;margin-top:28px}
@@ -103,6 +119,13 @@
 .chief-agent-panel [role=tabpanel]>p{font-size:11px;color:var(--theme-muted);line-height:1.6}
 .chief-agent-message{padding-bottom:24px;margin-bottom:18px;border-bottom:1px solid var(--theme-border)}
 .chief-agent-message>small{display:block;color:var(--theme-accent);font-size:10px;margin-bottom:8px}
+.chief-agent-recovery{padding:10px 28px;border-block:1px solid var(--theme-border);background:var(--theme-warning-bg);font-size:11px;line-height:1.5}
+.chief-agent-recovery fieldset{border:0;margin:0;padding:0}
+.chief-agent-recovery legend{font-weight:600}
+.chief-agent-recovery label{display:block}
+.chief-agent-recovery textarea{display:block;width:100%;min-height:60px;margin:6px 0;resize:vertical}
+.chief-agent-recovery button{border:1px solid var(--theme-border);font-size:11px}
+.chief-agent-recovery [role=alert]{color:var(--theme-danger-text)}
 @media(max-width:720px){
   .chief-workspace{grid-template-columns:minmax(0,1fr)}
   .chief-sidebar{display:none}
@@ -113,6 +136,8 @@
   .chief-settings .content-wrap{padding:13px}
   .chief-chat-header h1{font-size:13px}
   .chief-agents{padding:10px 16px}
+  .chief-progress{padding:12px 16px}
+  .chief-progress-counts{gap:4px 10px}
   .chief-transcript{padding:20px 20px 12px}
   .chief-message.from-operator{max-width:96%}
   .chief-composer-wrap{padding:10px 14px 18px}

@@ -49,6 +49,50 @@ class ChiefReceipt(StrictModel):
     detail: str | None = None
 
 
+class ChiefProgressCounts(StrictModel):
+    active_attempts: int = Field(ge=0)
+    queued_attempts: int = Field(ge=0)
+    unfinished_assignments: int = Field(ge=0)
+    blocked_assignments: int = Field(ge=0)
+    ready_artifacts: int = Field(ge=0)
+
+
+class ChiefProgressBlocker(StrictModel):
+    kind: Literal[
+        "unknown_attempt",
+        "started_action",
+        "pending_approval",
+        "blocked_assignment",
+        "unfinished_assignment",
+        "awaiting_chief",
+        "none",
+    ]
+    detail: str
+    session_id: UUID | None = None
+    attempt_id: UUID | None = None
+
+
+class ChiefProgressAction(StrictModel):
+    kind: Literal[
+        "open_agent",
+        "review_approval",
+        "review_deliverables",
+        "review_outcome",
+        "wait",
+        "message_chief",
+        "none",
+    ]
+    label: str
+    session_id: UUID | None = None
+
+
+class ChiefProgress(StrictModel):
+    counts: ChiefProgressCounts
+    blocker: ChiefProgressBlocker | None
+    next_action: ChiefProgressAction | None
+    paused: bool
+
+
 class ChiefControl(StrictModel):
     client_action_id: UUID
     expected_version: int = Field(ge=1)

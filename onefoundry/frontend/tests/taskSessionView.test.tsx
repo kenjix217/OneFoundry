@@ -20,6 +20,9 @@ it('requires an explicit reason to abandon unknown history before a separate tur
   const abandon = await screen.findByRole('button', { name: 'Abandon unverified result' });
   expect(abandon).toBeDisabled();
   expect(screen.queryByRole('button', { name: /Continue work/ })).not.toBeInTheDocument();
+  vi.mocked(reconcileTeamActions).mockResolvedValue(0);
+  await user.click(screen.getByRole('button', { name: 'Reconcile saved actions' }));
+  expect(reconcileTeamActions).toHaveBeenCalledWith('project', 'order', 'main');
   await user.type(screen.getByLabelText('Reason for abandoning the unverified result'), 'Stop this uncertain result without replaying it.');
   await user.click(abandon);
   expect(acknowledgeUnknown).toHaveBeenCalledWith('project', 'order', 'main', child.attempts[0].id,

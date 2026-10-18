@@ -16,6 +16,7 @@ from onefoundry.input_file_bytes import InputFileBytes
 from onefoundry.input_file_worker import process_one
 from onefoundry.main import create_app
 from onefoundry.operator_message_contract import LONG_MESSAGE_BRIEF
+from onefoundry.task_session_assignments import DelegateRequest, TaskSessionAssignments
 from onefoundry.task_session_attempts import TaskSessionAttempts
 from onefoundry.task_session_context import TaskSessionContext
 from onefoundry.task_session_decisions import TaskSessionDecisions
@@ -89,6 +90,157 @@ def test_first_message_is_one_root_and_one_queued_attempt(tmp_path: Path, quiet_
         assert len(session["messages"]) == 1
         assert len(session["attempts"]) == 1
         assert session["attempts"][0]["status"] == "queued"
+
+
+def test_chief_progress_is_scoped_and_shows_queued_work(tmp_path: Path, quiet_worker: None) -> None:
+    with TestClient(create_app(settings_for(tmp_path)), base_url="http://localhost:8765") as client:
+        project, _ = project_with_models(client)
+        other_project = client.post(
+            "/api/projects", json={"name": "Other progress scope"}, headers=ORIGIN
+        ).json()["id"]
+        saved = command(client, project, "Prepare a local brief.")
+        path = f"/api/projects/{project}/chief-workspace/{saved['order_id']}/progress"
+        response = client.get(path)
+        assert response.status_code == 200, response.text
+        progress = response.json()
+        assert progress["counts"] == {
+            "active_attempts": 0,
+            "queued_attempts": 1,
+            "unfinished_assignments": 0,
+            "blocked_assignments": 0,
+            "ready_artifacts": 0,
+        }
+        assert progress["blocker"] is None
+        assert progress["next_action"]["kind"] == "wait"
+        assert progress["paused"] is False
+        assert (
+            client.get(
+                f"/api/projects/{other_project}/chief-workspace/{saved['order_id']}/progress"
+            ).status_code
+            == 404
+        )
+        assert client.get(f"/api/projects/{project}/chief-workspace/{uuid4()}/progress").status_code == 404
+
+
+def test_chief_progress_unknown_beats_pause_and_targets_exact_session(
+    tmp_path: Path, quiet_worker: None
+) -> None:
+    settings = settings_for(tmp_path)
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project, _ = project_with_models(client)
+        saved = command(client, project, "Prepare a local brief.")
+        pid = UUID(project)
+        gateway = ToolGateway(
+            create_engine(settings.database_url), "fixture-worker", live_text_settings=settings
+        )
+        attempts = TaskSessionAttempts(gateway)
+        claimed = attempts.claim_next(pid)
+        assert claimed is not None
+        attempts.settle(pid, claimed["id"], "unknown", reason="runner_interrupted")
+        row = client.get(f"/api/projects/{project}/chief-workspace").json()[0]
+        pause = client.post(
+            f"/api/projects/{project}/chief-workspace/{saved['order_id']}/controls",
+            json={
+                "client_action_id": str(uuid4()),
+                "expected_version": row["version"],
+                "expected_controls_version": row["controls_version"],
+                "action": "pause",
+            },
+            headers=ORIGIN,
+        )
+        assert pause.status_code == 200, pause.text
+        progress = client.get(f"/api/projects/{project}/chief-workspace/{saved['order_id']}/progress").json()
+        assert progress["paused"] is True
+        assert progress["blocker"]["kind"] == "unknown_attempt"
+        assert progress["blocker"]["session_id"] == saved["session_id"]
+        assert progress["blocker"]["attempt_id"] == saved["attempt_id"]
+        assert progress["next_action"]["kind"] == "open_agent"
+        assert progress["next_action"]["session_id"] == saved["session_id"]
+        acknowledged = client.post(
+            f"/api/projects/{project}/work-orders/{saved['order_id']}/team-session/"
+            f"sessions/{saved['session_id']}/attempts/{saved['attempt_id']}/acknowledge",
+            json={
+                "client_action_id": str(uuid4()),
+                "decision": "abandon_unverified",
+                "reason": "The fixture outcome cannot be verified; preserve its history.",
+            },
+            headers=ORIGIN,
+        )
+        assert acknowledged.status_code == 200, acknowledged.text
+        after = client.get(f"/api/projects/{project}/chief-workspace/{saved['order_id']}/progress").json()
+        assert after["paused"] is True
+        assert after["blocker"]["kind"] != "unknown_attempt"
+        gateway.engine.dispose()
+
+
+def test_chief_progress_preserves_closed_descendant_unknown(tmp_path: Path, quiet_worker: None) -> None:
+    settings = settings_for(tmp_path)
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project, profiles = project_with_models(client)
+        saved = command(client, project, "Investigate an uncertain specialist result.")
+        pid = UUID(project)
+        gateway = ToolGateway(
+            create_engine(settings.database_url), "fixture-worker", live_text_settings=settings
+        )
+        attempts = TaskSessionAttempts(gateway)
+        chief = attempts.claim_next(pid)
+        assert chief is not None
+        assignment = TaskSessionAssignments(gateway).delegate(
+            pid,
+            chief["session_id"],
+            chief["id"],
+            DelegateRequest(
+                client_action_id=uuid4(),
+                profile_id=UUID(profiles["Researcher"]),
+                objective="Inspect the saved source.",
+                expected_result="A sourced finding.",
+                acceptance_check="State the source and any gaps.",
+            ),
+        )
+        attempts.settle(pid, chief["id"], "done", public_reply="Specialist is working.")
+        child = attempts.claim_next(pid)
+        assert child is not None and child["session_id"] == assignment["child_session_id"]
+        attempts.settle(pid, child["id"], "unknown", reason="runner_interrupted")
+        with gateway.engine.begin() as connection:
+            connection.execute(
+                text("UPDATE task_sessions SET status='closed' WHERE project_id=:p AND id=:s"),
+                {"p": pid, "s": child["session_id"]},
+            )
+        progress = client.get(f"/api/projects/{project}/chief-workspace/{saved['order_id']}/progress").json()
+        assert progress["blocker"]["kind"] == "unknown_attempt"
+        assert progress["blocker"]["session_id"] == str(child["session_id"])
+        assert progress["blocker"]["attempt_id"] == str(child["id"])
+        assert progress["next_action"]["session_id"] == str(child["session_id"])
+        assert progress["counts"]["unfinished_assignments"] == 1
+        gateway.engine.dispose()
+
+
+def test_chief_progress_routes_text_completion_to_operator_review(tmp_path: Path, quiet_worker: None) -> None:
+    settings = settings_for(tmp_path)
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project, _ = project_with_models(client)
+        saved = command(client, project, "Prepare a text brief for review.")
+        pid = UUID(project)
+        gateway = ToolGateway(create_engine(settings.database_url), "fixture-worker")
+        claimed = TaskSessionAttempts(gateway).claim_next(pid)
+        assert claimed is not None
+        TaskSessionAttempts(gateway).settle(pid, claimed["id"], "done", public_reply="Brief submitted.")
+        with gateway.engine.begin() as connection:
+            connection.execute(
+                text("UPDATE work_orders SET status='needs_review' WHERE project_id=:p AND id=:o"),
+                {"p": pid, "o": UUID(saved["order_id"])},
+            )
+        response = client.get(f"/api/projects/{project}/chief-workspace/{saved['order_id']}/progress")
+        assert response.status_code == 200, response.text
+        progress = response.json()
+        assert progress["counts"]["ready_artifacts"] == 0
+        assert progress["blocker"] is None
+        assert progress["next_action"] == {
+            "kind": "review_outcome",
+            "label": "Review completed result",
+            "session_id": None,
+        }
+        gateway.engine.dispose()
 
 
 @pytest.mark.parametrize("agent", ["Chief of Staff", "Researcher"])

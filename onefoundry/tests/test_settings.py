@@ -496,7 +496,7 @@ def test_public_web_settings_are_default_on_and_validate_bounds(monkeypatch: pyt
             Settings(db_password="test-only", public_web_search_endpoint=endpoint)
     for field, value in (
         ("public_web_timeout_seconds", 0),
-        ("public_web_max_response_bytes", 263000),
+        ("public_web_max_response_bytes", 2000001),
         ("public_web_max_text_chars", 100),
         ("public_web_max_results", 11),
     ):
@@ -824,3 +824,37 @@ def test_sdk_call_limit_defaults_to_unlimited_and_validates_overrides(
         monkeypatch.setenv("TEAM_MAX_MODEL_CALLS_PER_TURN", invalid)
         with pytest.raises(ValidationError):
             Settings(db_password="test-only")
+
+
+def test_public_web_size_limits_match_transport_and_follow_settings_precedence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("PUBLIC_WEB_MAX_RESPONSE_BYTES", raising=False)
+    monkeypatch.delenv("PUBLIC_WEB_MAX_TEXT_CHARS", raising=False)
+    defaults = Settings(db_password="test-only")
+    assert defaults.public_web_max_response_bytes == 65536
+    assert defaults.public_web_max_text_chars == 4000
+
+    monkeypatch.setenv("PUBLIC_WEB_MAX_RESPONSE_BYTES", "1048576")
+    monkeypatch.setenv("PUBLIC_WEB_MAX_TEXT_CHARS", "16000")
+    configured = Settings(db_password="test-only")
+    assert configured.public_web_max_response_bytes == 1048576
+    assert configured.public_web_max_text_chars == 16000
+    explicit = Settings(
+        db_password="test-only",
+        public_web_max_response_bytes=2000000,
+        public_web_max_text_chars=8000,
+    )
+    assert explicit.public_web_max_response_bytes == 2000000
+    assert explicit.public_web_max_text_chars == 8000
+
+    for name, invalid in (
+        ("PUBLIC_WEB_MAX_RESPONSE_BYTES", "2000001"),
+        ("PUBLIC_WEB_MAX_RESPONSE_BYTES", "1023"),
+        ("PUBLIC_WEB_MAX_TEXT_CHARS", "16001"),
+        ("PUBLIC_WEB_MAX_TEXT_CHARS", "255"),
+    ):
+        monkeypatch.setenv(name, invalid)
+        with pytest.raises(ValidationError):
+            Settings(db_password="test-only")
+        monkeypatch.setenv(name, "1048576" if name.endswith("BYTES") else "16000")

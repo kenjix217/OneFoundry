@@ -7,6 +7,7 @@ from threading import Event
 from typing import Any, cast
 
 import pytest
+from pydantic import ValidationError
 
 from onefoundry.public_web_client import (
     PublicWebClient,
@@ -15,6 +16,7 @@ from onefoundry.public_web_client import (
     PublicWebUnavailable,
     _PinnedHTTPSConnection,
 )
+from onefoundry.role_web_tools import FetchOutput
 
 
 class FakeResponse:
@@ -85,10 +87,26 @@ def test_fetch_bounded_html_with_no_redirect_or_ambient_headers() -> None:
     assert result["url"] == "https://example.org/news"
     assert result["title"] == "Example"
     assert result["text"] == "Hello world"
+    assert result["text_truncated"] is False
     assert result["published_at"] is None
     assert result["fetched_at"].endswith("+00:00")
     assert connection.requested[0][0:2] == ("GET", "/news")
     assert set(connection.requested[0][2]) == {"Host", "Accept", "Accept-Encoding", "User-Agent"}
+    assert connection.closed
+
+
+def test_fetch_marks_bounded_text_excerpt_without_expanding_response_limit() -> None:
+    client, connection = _client(FakeResponse(b"<p>" + b"x" * 150 + b"</p>"))
+    result = client.fetch("https://example.org/page", 5, 1024, 100)
+    assert result["text"] == "x" * 100
+    assert result["text_truncated"] is True
+    assert FetchOutput.model_validate(result).text_truncated is True
+    assert (
+        FetchOutput.model_validate({k: v for k, v in result.items() if k != "text_truncated"}).text_truncated
+        is False
+    )
+    with pytest.raises(ValidationError):
+        FetchOutput.model_validate({**result, "text_truncated": "yes"})
     assert connection.closed
 
 
@@ -144,6 +162,35 @@ def test_fetch_rejects_secret_in_page_before_text_truncation() -> None:
     with pytest.raises(PublicWebRejected) as error:
         client.fetch("https://example.org/", 5, 1024, 10)
     assert "supersecret" not in str(error.value)
+
+
+@pytest.mark.parametrize(
+    "response,code",
+    [
+        (FakeResponse(b"short", headers={"Content-Length": "99999"}), "web_response_too_large"),
+        (FakeResponse(b"short", headers={"Content-Encoding": "gzip"}), "web_response_compressed"),
+        (FakeResponse(b"binary", content_type="application/octet-stream"), "web_response_content_type"),
+        (FakeResponse(b"password=private-value"), "web_content_sensitive"),
+    ],
+)
+def test_fetch_policy_rejection_has_content_free_owner_code(response: FakeResponse, code: str) -> None:
+    client, _ = _client(response)
+    with pytest.raises(PublicWebRejected) as error:
+        client.fetch("https://example.org/private", 5, 1024, 100)
+    assert error.value.code == code
+    assert "example.org" not in str(error.value)
+    assert "private-value" not in str(error.value)
+
+
+def test_fetch_credential_and_nonpublic_target_have_distinct_owner_codes() -> None:
+    client, connection = _client(FakeResponse(b"safe"))
+    with pytest.raises(PublicWebRejected) as credential:
+        client.fetch("https://user:private@example.org/", 5, 1024, 100)
+    with pytest.raises(PublicWebRejected) as nonpublic:
+        client.fetch("https://127.0.0.1/", 5, 1024, 100)
+    assert credential.value.code == "web_target_credentials"
+    assert nonpublic.value.code == "web_target_not_public"
+    assert connection.requested == []
 
 
 def test_search_fixed_endpoint_filters_bad_result_urls_and_dates() -> None:

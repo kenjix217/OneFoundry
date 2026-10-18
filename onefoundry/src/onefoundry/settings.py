@@ -298,8 +298,8 @@ class Settings(BaseSettings):
     public_web_enabled: bool = True
     public_web_search_endpoint: str = ""
     public_web_timeout_seconds: int = Field(default=8, ge=1, le=15)
-    public_web_max_response_bytes: int = Field(default=65536, ge=1024, le=262144)
-    public_web_max_text_chars: int = Field(default=4000, ge=256, le=8000)
+    public_web_max_response_bytes: int = Field(default=65536, ge=1024, le=2_000_000)
+    public_web_max_text_chars: int = Field(default=4000, ge=256, le=16000)
     public_web_max_results: int = Field(default=5, ge=1, le=10)
     browser_static_enabled: bool = False
     browser_static_image_id: str = ""

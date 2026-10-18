@@ -267,6 +267,15 @@ def test_brief_dependency_artifact_qa_rework_and_operator_acceptance(tmp_path: P
         assert "millions in revenue" in str(bad_qa.first_call)
         view = client.get(base).json()
         assert [a["status"] for a in view["assignments"]] == ["satisfied", "satisfied", "blocked"]
+        assert bad_qa.remaining_steps == 1
+        rejected_session = client.get(f"{base}/sessions/{view['assignments'][2]['child_session_id']}").json()
+        assert (
+            sum("revenue is unsupported" in message["body"] for message in rejected_session["messages"]) == 1
+        )
+        assert all(
+            message["body"] != "QA failed; bounded rework required."
+            for message in rejected_session["messages"]
+        )
         assert "revenue is unsupported" in view["messages"][-1]["body"]
         orders = client.get(f"/api/projects/{project}/work-orders").json()
         assert len(orders) == 4
@@ -372,6 +381,16 @@ def test_brief_dependency_artifact_qa_rework_and_operator_acceptance(tmp_path: P
         assert TaskSessionDecisions(gateway).dispatch_next(pid) is not None
         final = worker.run_next(pid)
         assert final is not None and final["outcome"] == "done", final
+        final_messages = client.get(base).json()["messages"]
+        assert (
+            sum(
+                message["body"] == "Corrected brief delivered, exact bytes reviewed by QA."
+                for message in final_messages
+            )
+            == 1
+        )
+        assert all(message["body"] != "Brief is ready for operator acceptance." for message in final_messages)
+        assert summary.remaining_steps == 1
         orders = client.get(f"/api/projects/{project}/work-orders").json()
         completed = next(w for w in orders if w["id"] == oid)
         assert completed["status"] == "needs_review", completed
@@ -381,6 +400,12 @@ def test_brief_dependency_artifact_qa_rework_and_operator_acceptance(tmp_path: P
         assert preview.status_code == 200, preview.text
         assert preview.json()["content"] == GOOD
         assert preview.json()["sha256"] == hashlib.sha256(GOOD.encode()).hexdigest()
+        saved_files = client.get(f"{base}/artifacts").json()
+        exact_file = next(item for item in saved_files if item["id"] == artifacts["id"])
+        assert exact_file["work_order_title"] == "Correct the revenue claim per QA feedback"
+        assert (
+            client.get(f"/api/projects/{uuid4()}/work-orders/{oid}/team-session/artifacts").status_code == 404
+        )
         returned = client.post(
             f"/api/projects/{project}/work-orders/{oid}/return",
             json={

@@ -67,7 +67,7 @@ export function TaskSessionActivity({ view, profiles, onOpenRun, onOpenSession, 
         const retry = number(attempt.retry_of_attempt_id ?? null);
         return <article className="task-activity-turn" key={entry.key}>
           <h3>Turn {n}{partial ? ' (visible history)' : ''} · {attempt.status === 'done' ? 'Turn finished' : attempt.status === 'running' ? 'Agent working' :
-            attempt.status === 'queued' ? 'Agent queued' : attempt.status === 'unknown' ? 'Outcome unknown' : 'Turn stopped'}</h3>
+            attempt.status === 'queued' ? 'Agent queued' : attempt.terminal_result_reconciled ? 'Saved result reconciled' : attempt.status === 'unknown' ? 'Outcome unknown' : 'Turn stopped'}</h3>
           <p><Timestamp value={attempt.created_at} /> · {recordedTiming(attempt.started_at, attempt.finished_at)}
             {attempt.finished_at && <> · Finished <Timestamp value={attempt.finished_at} /></>}</p>
           <p>{attempt.provider ? `${safeActivityText(attempt.provider)}${attempt.model_id ? ` ${safeActivityText(attempt.model_id)}` : ''}` : 'Provider: not recorded'}
@@ -77,7 +77,7 @@ export function TaskSessionActivity({ view, profiles, onOpenRun, onOpenSession, 
           {attempt.retry_of_attempt_id && <p>Retry of {retry ? `turn ${retry}` : 'an earlier turn outside visible history'}.
             {attempt.not_before && <> Scheduled after <Timestamp value={attempt.not_before} />.</>}</p>}
           {attempt.reason && <p className="task-activity-error">Recorded stop reason: {safeActivityText(attempt.reason).replaceAll('_', ' ')}</p>}
-          {attempt.status === 'unknown' && <p>{attempt.unknown_acknowledged ? 'The operator abandoned this unverified result. Its history remains unknown.' :
+          {attempt.status === 'unknown' && <p>{attempt.terminal_result_reconciled ? 'The saved terminal result was reconciled. This turn remains historically unknown.' : attempt.unknown_acknowledged ? 'The operator abandoned this unverified result. Its history remains unknown.' :
             'Confirmed work is retained. Check and reconcile uncertain saved actions before deciding whether to continue.'}</p>}
           <Diagnostics value={attempt} />
         </article>;

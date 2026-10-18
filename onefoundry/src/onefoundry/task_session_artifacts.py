@@ -27,10 +27,12 @@ def list_team_artifacts(gateway: ToolGateway, project_id: UUID, order_id: UUID) 
         rows = connection.execute(
             text(
                 "SELECT x.id,x.run_id,x.kind,x.mime_type,x.sha256,x.byte_size,x.status,x.created_at,"
-                "x.finished_at,s.profile_id,p.name AS profile_name FROM workspace_artifacts x "
+                "x.finished_at,s.profile_id,p.name AS profile_name,w.title AS work_order_title "
+                "FROM workspace_artifacts x "
                 "JOIN task_session_attempts a ON a.project_id=x.project_id AND a.id=x.run_id "
                 "JOIN task_sessions s ON s.project_id=a.project_id AND s.id=a.session_id "
                 "JOIN profiles p ON p.project_id=s.project_id AND p.id=s.profile_id "
+                "JOIN work_orders w ON w.project_id=s.project_id AND w.id=s.work_order_id "
                 "WHERE x.project_id=:p AND s.root_work_order_id=:root "
                 "ORDER BY x.created_at DESC,x.id LIMIT 100"
             ),

@@ -60,7 +60,8 @@ def unresolved(
                 "AND (CAST(:session AS uuid) IS NULL OR a.session_id=:session) AND NOT EXISTS "
                 "(SELECT 1 FROM events e WHERE e.project_id=a.project_id "
                 "AND e.work_order_id=a.root_work_order_id "
-                "AND e.event_type='task_session_unknown_acknowledged' "
+                "AND e.event_type IN ('task_session_unknown_acknowledged',"
+                "'task_session_terminal_attempt_reconciled') "
                 "AND e.payload->>'attempt_id'=a.id::text) LIMIT 1"
             ),
             {"p": project_id, "root": root_id, "session": session_id},
@@ -120,6 +121,16 @@ def acknowledge(
             if dict(prior) != result:
                 raise Conflict("this unknown outcome already has a different acknowledgement")
             return result
+        terminal = connection.scalar(
+            text(
+                "SELECT 1 FROM events WHERE project_id=:p AND work_order_id=:root "
+                "AND event_type='task_session_terminal_attempt_reconciled' "
+                "AND payload->>'attempt_id'=:a LIMIT 1"
+            ),
+            {"p": project_id, "root": scope["root_work_order_id"], "a": str(attempt_id)},
+        )
+        if terminal is not None:
+            raise Conflict("this attempt's terminal result is already reconciled")
         if attempt["status"] != "unknown":
             raise Conflict("only an unknown outcome can be acknowledged")
         busy = connection.scalar(

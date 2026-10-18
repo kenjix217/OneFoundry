@@ -5,9 +5,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Response
 
-from onefoundry import chief_workspace_messages, chief_workspace_reads
+from onefoundry import chief_workspace_messages, chief_workspace_progress, chief_workspace_reads
 from onefoundry.chief_workspace_controls import control
-from onefoundry.chief_workspace_schemas import ChiefControl, ChiefMessage, ChiefReceipt
+from onefoundry.chief_workspace_schemas import ChiefControl, ChiefMessage, ChiefProgress, ChiefReceipt
 from onefoundry.tool_gateway import ToolGateway
 from onefoundry.workflow_api import execute
 
@@ -22,6 +22,12 @@ def make_chief_workspace_router(gateway: ToolGateway) -> APIRouter:
     @router.get("/resolve/{order_id}")
     def resolve(project_id: UUID, order_id: UUID) -> dict[str, Any]:
         return execute(lambda: chief_workspace_reads.resolve_conversation(gateway, project_id, order_id))
+
+    @router.get("/{order_id}/progress", response_model=ChiefProgress)
+    def progress(project_id: UUID, order_id: UUID) -> ChiefProgress:
+        return ChiefProgress.model_validate(
+            execute(lambda: chief_workspace_progress.progress(gateway, project_id, order_id))
+        )
 
     @router.post("/messages", response_model=ChiefReceipt)
     def message(project_id: UUID, data: ChiefMessage, response: Response) -> ChiefReceipt:

@@ -4,13 +4,16 @@ import { ApiError } from './api';
 import { changeChiefConversation, lookupChiefMessage, sendChiefMessage, type ChiefMessageRequest, type ChiefReceipt } from './chiefWorkspaceApi';
 import { useChiefWorkspace } from './useChiefWorkspace';
 import { ChiefAgentPanel } from './ChiefAgentPanel';
+import { ChiefAgentRecovery } from './ChiefAgentRecovery';
 import { ChiefConversationText, isPublicAgentMessage, publicMessage } from './ChiefConversationText';
 import { ChiefApprovals } from './ChiefApprovals';
-import { WorkspaceArtifactPanel } from './WorkspaceArtifactPanel';
+import { ChiefDeliverables } from './ChiefDeliverables';
+import { ChiefProgressCard } from './ChiefProgressCard';
 import { WorkOrderReviewActions } from './WorkOrderReviewActions';
 import { InputFilePicker } from './InputFilePicker';
 import { checkInputIdsReady, uploadInputFiles, type PendingInputFile } from './inputFileApi';
 import { TaskSessionActivity } from './TaskSessionActivity';
+import { getTeamSession } from './taskSessionApi';
 import { TaskCapabilityReadiness } from './TaskCapabilityReadiness';
 import { ChiefSidebar } from './ChiefSidebar';
 import { ConversationAgentSelect } from './ConversationAgentSelect';
@@ -38,13 +41,13 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [rename, setRename] = useState<string | null>(null);
-  const [fileRun, setFileRun] = useState<string | null>(null);
   const [attach, setAttach] = useState(false);
   const [inputFiles, setInputFiles] = useState<PendingInputFile[]>([]);
   const pending = useRef<ChiefMessageRequest | null>(null);
   const restored = useRef<PendingIdentity | null>(null);
   const transcript = useConversationFollow(state.selectedId);
   const composer = useRef<HTMLTextAreaElement>(null);
+  const rootRecovery = useRef<HTMLDivElement>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [draftBeforeEdit, setDraftBeforeEdit] = useState<string | null>(null);
   const order = state.rows.find((item) => item.id === state.selectedId);
@@ -85,12 +88,12 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
     if (busy || pending.current || restored.current) return;
     if (id === null) setDraftAgentId(agentId);
     state.setSelectedId(id); state.setAgentId(null); onSelect(id); setBody(''); setEditingMessageId(null); setDraftBeforeEdit(null); setError(null); setNotice(null);
-    setSidebarOpen(false); setFileRun(null); setAttach(false); setInputFiles([]); composer.current?.focus();
+    setSidebarOpen(false); setAttach(false); setInputFiles([]); composer.current?.focus();
   }
   function selectAgent(id: string) {
     if (busy || state.resolving || reconnecting || pending.current || restored.current || id === agentId) return;
     setDraftAgentId(id); state.setSelectedId(null); state.setAgentId(null); onSelect(null);
-    setEditingMessageId(null); setDraftBeforeEdit(null); setError(null); setNotice(null); setSidebarOpen(false); setFileRun(null); setAttach(false); setInputFiles([]);
+    setEditingMessageId(null); setDraftBeforeEdit(null); setError(null); setNotice(null); setSidebarOpen(false); setAttach(false); setInputFiles([]);
   }
   async function copyMessage(text: string) {
     try { await navigator.clipboard.writeText(text); setNotice('Message copied.'); }
@@ -138,7 +141,7 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
     setBusy(true); setError(null);
     try {
       await changeChiefConversation(project.id, target, action, title); state.refresh(); setRename(null);
-      if (action === 'trash' && target.id === state.selectedId) { state.setSelectedId(null); state.setAgentId(null); onSelect(null); setBody(''); setInputFiles([]); setAttach(false); setFileRun(null); }
+      if (action === 'trash' && target.id === state.selectedId) { state.setSelectedId(null); state.setAgentId(null); onSelect(null); setBody(''); setInputFiles([]); setAttach(false); }
       setNotice(action === 'pause' ? 'Future turns are paused. The current bounded turn can finish.' : action === 'archive' ? 'Conversation archived. Its work and history remain available.' : action === 'trash' ? 'Conversation moved to Trash.' : action === 'restore' && target.trashed ? 'Restored to Archived. Future chat turns remain paused.' : null);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Conversation action unavailable.'); state.refresh(); }
     finally { setBusy(false); }
@@ -152,15 +155,35 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
     {settingsContent && <section className="chief-settings" aria-label={integrationsOpen ? 'Integrations' : 'Settings'}><div className="chief-settings-return"><button className="chief-list-toggle" aria-label={sidebarOpen ? 'Close conversations' : 'Open conversations'} onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button><button aria-label="Back to conversation" onClick={() => { setSidebarOpen(false); onSelect(state.selectedId); }}>← Back to conversation</button></div>{(error || state.error) && <p role="alert">{error ?? state.error}</p>}{notice && <p role="status">{notice}</p>}{settingsContent}</section>}
     <section className="chief-chat" aria-label={`${agentName} conversation`} hidden={!!settingsContent}><header className="chief-chat-header"><button className="chief-list-toggle" aria-label={sidebarOpen ? 'Close conversations' : 'Open conversations'} onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
       <div><ConversationAgentSelect profiles={profiles} value={agentId} savedName={order?.profile_name} disabled={busy || state.resolving || reconnecting || pending.current !== null || restored.current !== null} onChange={selectAgent} />
-        {order && <h1>{order.title}</h1>}<small>{order?.state ?? (agentId ? `Direct conversation with ${agentName}` : 'Chief coordinates the work.')}</small></div>
+        {order && <h1>{order.title}</h1>}<small>{state.progress?.blocker ? 'Needs attention' : order?.state ?? (agentId ? `Direct conversation with ${agentName}` : 'Chief coordinates the work.')}</small></div>
       {order && <details className="chief-options"><summary aria-label="Conversation actions">···</summary><div><button disabled={busy} onClick={() => setRename(order.title)}>Rename</button>{!order.archived && <button disabled={busy} onClick={() => { void control(order.paused ? 'resume' : 'pause'); }}>{order.paused ? 'Resume' : 'Pause'}</button>}<button disabled={busy} onClick={() => { void control(order.archived ? 'restore' : 'archive'); }}>{order.archived ? 'Restore' : 'Archive'}</button>{order.archived && <button disabled={busy} onClick={() => { void control('trash'); }}>Delete conversation</button>}</div></details>}
     </header>
+    {order?.canonical_chief && state.view && <ChiefProgressCard progress={state.progress} error={state.progressError} status={order.status}
+      onOpenAgent={(id) => { if (state.view?.session.id === id) rootRecovery.current?.querySelector<HTMLElement>('button:not(:disabled), textarea:not(:disabled)')?.focus();
+        else if (state.view?.children.some((child) => child.id === id)) state.setAgentId(id);
+        else setError('The affected agent could not be found in this conversation. Refresh the saved work.'); }}
+      onMessageChief={() => composer.current?.focus()}
+      onReviewApproval={() => transcript.current?.querySelector<HTMLElement>('.chief-approval button')?.focus()}
+      onReviewDeliverables={() => transcript.current?.querySelector<HTMLElement>('#chief-deliverables button')?.focus()}
+      onReviewOutcome={() => transcript.current?.querySelector<HTMLElement>('.work-review-actions textarea')?.focus()}
+      onResume={order.paused && !order.archived ? () => { void control('resume'); } : undefined}
+      resumeDisabled={busy || reconnecting || state.resolving || pending.current !== null || restored.current !== null} />}
     {state.view && state.view.children.length > 0 && <nav className="chief-agents" aria-label="Delegated agents">{state.view.children.map((child) => <button key={child.id} onClick={() => state.setAgentId(child.id)}>{profiles.find((item) => item.id === child.profile_id)?.name ?? 'Agent'} <span>↗</span></button>)}</nav>}
     <div className="chief-transcript" ref={transcript}>
+      {order?.canonical_chief && state.view && <div ref={rootRecovery}><ChiefAgentRecovery projectId={project.id} orderId={order.id} view={state.view}
+        onChanged={async () => { const saved = await getTeamSession(project.id, order.id); state.refresh(); return saved; }} /></div>}
       {!state.selectedId && !state.resolving && <div className="chief-welcome"><span>✳</span><h2>What shall we work on?</h2><p>{agentId ? `Message ${agentName} directly. Your conversation is saved when you send.` : 'Give Chief the objective. Chief plans, delegates, checks the work and brings the result here.'}</p></div>}
       {(state.resolving || state.selectedId && !state.view) && !state.error && <p role="status">Reading saved conversation…</p>}
       {state.view?.messages.filter((item) => item.kind !== 'system' &&
         (item.kind.includes('operator') || isPublicAgentMessage(item.body))).map((item) => {
+        if (item.source_session_id && !item.kind.includes('operator')) {
+          const child = state.view?.children.find((value) => value.id === item.source_session_id);
+          const name = profiles.find((profile) => profile.id === child?.profile_id)?.name ?? 'Agent';
+          return <article className="chief-message chief-agent-handoff" key={item.id}>
+            <small>{name}</small><p>Delegated result saved for Chief to review.</p>
+            {child && <button type="button" onClick={() => state.setAgentId(child.id)}>Open {name} result</button>}
+          </article>;
+        }
         const operator = item.kind.includes('operator');
         const text = operator ? item.body : publicMessage(item.body);
         return <article className={`chief-message ${operator ? 'from-operator' : ''}`} key={item.id}>
@@ -170,8 +193,7 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
             onEdit={item.kind !== 'system' && !order?.archived && !busy && !pending.current && !restored.current ? () => editMessage(item.id, text) : undefined} />
         </article>;
       })}
-      {!!state.files.length && <div className="chief-deliveries">{[...new Map(state.files.map((file) => [file.run_id, file])).values()].map((file) => <button key={file.run_id} onClick={() => setFileRun(file.run_id)}>{file.profile_name} · {file.kind.replaceAll('_', ' ')} ↗</button>)}</div>}
-      {fileRun && <section className="chief-file-preview"><button onClick={() => setFileRun(null)}>Close file preview</button><WorkspaceArtifactPanel projectId={project.id} runId={fileRun} /></section>}
+      <ChiefDeliverables key={state.selectedId} projectId={project.id} files={state.files} />
       <ChiefApprovals projectId={project.id} approvals={state.approvals} onSaved={state.refresh} />
       {state.reviewOrder?.status === 'needs_review' && order?.completion_policy === 'operator_review' && <WorkOrderReviewActions projectId={project.id} order={state.reviewOrder} onSaved={state.refresh} />}
       {state.view && <details className="chief-history" onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>

@@ -1,21 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { getTeamSession, type TeamAssignment, type TeamSessionView } from './taskSessionApi';
 import type { Profile } from './api';
-import { ChiefConversationText } from './ChiefConversationText';
+import { ChiefConversationText, isPublicAgentMessage } from './ChiefConversationText';
 import { WorkspaceArtifactPanel } from './WorkspaceArtifactPanel';
+import { ChiefAgentRecovery } from './ChiefAgentRecovery';
+import { TaskSessionActivity } from './TaskSessionActivity';
 
-export type ChiefFile = { id: string; run_id: string; profile_id: string; profile_name: string; kind: string };
+export type ChiefFile = { id: string; run_id: string; profile_id: string; profile_name: string; kind: string;
+  work_order_title?: string | null; status?: 'ready' | 'pending' | 'unknown' };
 type Props = { projectId: string; orderId: string; sessionId: string; main: TeamSessionView;
   profiles: Profile[]; files: ChiefFile[]; onClose: () => void };
 export function ChiefAgentPanel({ projectId, orderId, sessionId, main, profiles, files, onClose }: Props) {
   const [tab, setTab] = useState<'context' | 'conversation' | 'files'>('context');
   const [view, setView] = useState<TeamSessionView | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activityOpen, setActivityOpen] = useState(false);
   const panel = useRef<HTMLElement>(null);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   const child = main.children.find((item) => item.id === sessionId);
   const profile = profiles.find((item) => item.id === child?.profile_id);
   const assignment: TeamAssignment | undefined = main.assignments.find((item) => item.child_session_id === sessionId);
+  async function refresh() {
+    const saved = await getTeamSession(projectId, orderId, sessionId);
+    setView(saved);
+    return saved;
+  }
   useEffect(() => {
     const controller = new AbortController();
     setView(null); setError(null);
@@ -43,6 +52,7 @@ export function ChiefAgentPanel({ projectId, orderId, sessionId, main, profiles,
           event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? 2 : (index + (event.key === 'ArrowRight' ? 1 : 2)) % 3;
           setTab(names[next]!); tabs.current[next]?.focus();
         }}>{name === 'context' ? 'Context' : name === 'conversation' ? 'Conversation' : 'Files'}</button>)}</div>
+      {view && <ChiefAgentRecovery projectId={projectId} orderId={orderId} view={view} onChanged={refresh} />}
       <section role="tabpanel" id={`chief-agent-${tab}`} aria-labelledby={`chief-agent-tab-${tab}`}>
         {error && <p role="alert">{error}</p>}
         {tab === 'context' && <><h3>Assignment</h3><ChiefConversationText body={assignment?.objective ?? 'Historical assignment; inspect the saved conversation.'} />
@@ -50,8 +60,11 @@ export function ChiefAgentPanel({ projectId, orderId, sessionId, main, profiles,
           {view?.messages.filter((item) => item.kind === 'system').map((item) => <section key={item.id}><h3>Supplied context</h3><ChiefConversationText body={item.body} /></section>)}
           <p>Chief owns this assignment and its next step.</p></>}
         {tab === 'conversation' && <>{!view && !error && <p role="status">Reading saved conversation…</p>}
-          {view?.messages.map((item) => <article className="chief-agent-message" key={item.id}><small>{item.kind === 'system' ? 'Supplied context' : item.kind.includes('operator') ? 'Operator' : profile?.name ?? 'Agent'}</small><ChiefConversationText body={item.body} /></article>)}
-          {!!view?.history_omitted?.messages && <p>Earlier messages remain available in Details.</p>}</>}
+          {view?.messages.filter((item) => item.kind !== 'system' && (item.kind.includes('operator') || isPublicAgentMessage(item.body)))
+            .map((item) => <article className="chief-agent-message" key={item.id}><small>{item.kind.includes('operator') ? 'Operator' : profile?.name ?? 'Agent'}</small><ChiefConversationText body={item.body} /></article>)}
+          {!!view?.history_omitted?.messages && <p>Earlier messages remain available in Details.</p>}
+          {view && <details className="chief-agent-activity" onToggle={(event) => setActivityOpen(event.currentTarget.open)}><summary>Recorded actions and earlier attempts</summary>
+            {activityOpen && <TaskSessionActivity view={view} profiles={profiles} />}</details>}</>}
         {tab === 'files' && <>{[...new Set(files.filter((item) => item.profile_id === child?.profile_id && view?.attempts.some((attempt) => attempt.id === item.run_id)).map((item) => item.run_id))].map((runId) => <WorkspaceArtifactPanel key={runId} projectId={projectId} runId={runId} />)}
           {!view && !error && <p role="status">Reading saved files…</p>}
           {view && !files.some((item) => item.profile_id === child?.profile_id && view.attempts.some((attempt) => attempt.id === item.run_id)) && <p>No saved files yet.</p>}</>}

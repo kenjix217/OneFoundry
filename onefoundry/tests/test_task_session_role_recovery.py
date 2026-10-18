@@ -16,6 +16,7 @@ from onefoundry.role_tool_admission import (
     ToolRepositoryReadFailure,
     ToolTimedOut,
 )
+from onefoundry.role_web_admission import WebDependencyFailure, WebPolicyFailure
 from onefoundry.task_session_tools import ROLE, TaskSessionTools
 from onefoundry.tool_gateway import ToolGateway
 
@@ -112,6 +113,49 @@ def test_repository_failure_replay_retains_safe_owner_guidance(monkeypatch: pyte
     assert isinstance(
         ToolRepositoryReadFailure("source_unavailable", "repository_file_v1"), ToolDependencyFailure
     )
+
+
+@pytest.mark.parametrize(
+    "failure,code,reason",
+    [
+        (WebPolicyFailure, "web_response_too_large", "tool_policy_rejected"),
+        (WebDependencyFailure, "web_http_status_unavailable", "tool_dependency_failure"),
+    ],
+)
+def test_web_failure_replay_retains_content_free_owner_code(
+    monkeypatch: pytest.MonkeyPatch,
+    failure: type[WebPolicyFailure] | type[WebDependencyFailure],
+    code: str,
+    reason: str,
+) -> None:
+    tools = bare_tools()
+    arguments = {"tool_id": "public_page_fetch_v1", "arguments": {"url": "https://example.org/private"}}
+    scope = {"role_tools": [{"id": "public_page_fetch_v1", "version": 1}]}
+    receipt = uuid4()
+    monkeypatch.setattr(tools, "_scope", Mock(return_value=scope))
+    monkeypatch.setattr(tools, "_admitted", Mock(return_value={ROLE}))
+    monkeypatch.setattr(
+        tools,
+        "_begin",
+        Mock(
+            side_effect=[
+                {"id": receipt, "status": "started"},
+                {"id": receipt, "status": "failed", "reason": code},
+            ]
+        ),
+    )
+    finish = Mock()
+    monkeypatch.setattr(tools, "_finish", finish)
+    execute = Mock(side_effect=failure(code))
+    monkeypatch.setattr(tools, "_execute", execute)
+    first = json.loads(tools.invoke(ROLE, arguments, "same-web-read")["contentItems"][0]["text"])
+    replay = json.loads(tools.invoke(ROLE, arguments, "same-web-read")["contentItems"][0]["text"])
+    assert first == replay
+    assert first["reason"] == reason
+    assert first["owner_reason"] == code
+    assert "example.org" not in json.dumps(first)
+    assert finish.call_args.kwargs["reason"] == code
+    execute.assert_called_once()
 
 
 def test_uncertain_effect_still_stops_without_claiming_failure(monkeypatch: pytest.MonkeyPatch) -> None:
