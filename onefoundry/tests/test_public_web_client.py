@@ -110,6 +110,49 @@ def test_fetch_marks_bounded_text_excerpt_without_expanding_response_limit() -> 
     assert connection.closed
 
 
+def test_fetch_prefers_main_content_over_navigation_and_retains_secret_guard() -> None:
+    html = (
+        "<html><head><title>Pricing</title></head><body><nav>"
+        + "Navigation links " * 100
+        + "</nav><main><h1>Pricing</h1><p>Prices per 1M tokens: input $1.00.</p>"
+        + "<style>.hidden{display:none}</style></main></body></html>"
+    ).encode()
+    client, _ = _client(FakeResponse(html))
+    result = client.fetch("https://example.org/pricing", 5, 4096, 100)
+    assert result["text"] == "Pricing Prices per 1M tokens: input $1.00."
+    assert result["text_truncated"] is False
+    secret, _ = _client(FakeResponse(html.replace(b"Navigation links", b"password=supersecret")))
+    with pytest.raises(PublicWebRejected) as error:
+        secret.fetch("https://example.org/pricing", 5, 4096, 100)
+    assert error.value.code == "web_content_sensitive"
+
+
+def test_fetch_accepts_bounded_markdown_text() -> None:
+    markdown = b"# Pricing\n\nPrices per 1M tokens.\n\n| Model | Input |\n| A | $1.00 |\n"
+    client, connection = _client(FakeResponse(markdown, content_type="text/markdown; charset=utf-8"))
+    result = client.fetch("https://example.org/pricing.md", 5, 1024, 100)
+    assert result["text"].startswith("# Pricing Prices per 1M tokens.")
+    assert "$1.00" in result["text"]
+    assert result["text_truncated"] is False
+    assert connection.requested[0][2]["Accept"].startswith("text/markdown")
+    assert connection.closed
+
+
+def test_fetch_uses_article_when_main_is_absent() -> None:
+    client, _ = _client(
+        FakeResponse(b"<nav>Navigation " + b"item " * 100 + b"</nav><article>Only article.</article>")
+    )
+    result = client.fetch("https://example.org/article", 5, 2048, 100)
+    assert result["text"] == "Only article."
+
+
+def test_fetch_skips_whitespace_only_main_before_article_or_body() -> None:
+    article, _ = _client(FakeResponse(b"<main> \n </main><article>Useful article.</article>"))
+    assert article.fetch("https://example.org/article", 5, 1024, 100)["text"] == "Useful article."
+    body, _ = _client(FakeResponse(b"<main> \n </main><p>Useful body.</p>"))
+    assert body.fetch("https://example.org/body", 5, 1024, 100)["text"] == "Useful body."
+
+
 @pytest.mark.parametrize(
     "url",
     [
@@ -218,6 +261,7 @@ def test_search_fixed_endpoint_filters_bad_result_urls_and_dates() -> None:
         }
     ]
     assert connection.requested[0][1] == "/search?q=school+finance&format=json"
+    assert connection.requested[0][2]["Accept"] == "application/json"
 
 
 def test_search_supports_only_fixed_internal_http_origin() -> None:
@@ -228,6 +272,7 @@ def test_search_supports_only_fixed_internal_http_origin() -> None:
         internal_connection_factory=lambda timeout: connection,
     )
     assert client.search("public query", "http://searxng:8080/search", 2, 5, 2048)["results"] == []
+    assert connection.requested[0][2]["Accept"] == "application/json"
     with pytest.raises(PublicWebRejected):
         client.search("public query", "http://other:8080/search", 2, 5, 2048)
 

@@ -1,5 +1,20 @@
 # OneFoundry changelog
 
+## 0.21.0
+
+- Prefer publisher-provided Markdown at the same searched URL and read meaningful HTML content before navigation. Keep search JSON, source admission, full-body secret checks and existing byte/time bounds.
+- Add scoped, hashed pages of attached text so team agents can inspect complete files after prompt excerpts run out of space. Preserve existing project and work-order links and reject altered or sensitive content. Migration `0094_input_file_pages` admits the new native read receipt without widening SQL grants.
+- Keep existing database privileges visible throughout runtime-role reprovisioning and roll back failed grant changes atomically.
+- Distinguish active tool work from unresolved stopped actions in Current work, accept nullable progress targets, and show compact recent saved-file cards with exact file selection.
+- Show current delegated work with clear assignment labels and keep past agents available in a collapsed history.
+- Make doctor honor the existing validated health deadline. Preserve safe preflight stage and error categories without saving exception text.
+
+## 0.20.3
+
+- Stop a team turn after its saved terminal report or completion, and reconcile exact verified saved terminal outcomes without replaying uncertain attempts or rewriting history.
+- Add Current work counts, saved deliverables and visible conversation resume controls.
+- Preserve specific web failure categories and fit extracted text within the existing serialized result bound; allow explicitly configured larger bounded source responses.
+
 ## 0.20.2
 
 - Settle known memory-preparation dependency failures before a model turn starts, preserving safe failure reasons instead of leaving work running until interruption recovery.

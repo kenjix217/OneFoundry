@@ -109,7 +109,10 @@ def test_empty_boundary_changed_state_and_invalid_reads_are_explicit() -> None:
 
 
 @pytest.mark.parametrize(
-    "name", sorted(READS | {"onefoundry.read_dependency_result", "onefoundry.list_agents"})
+    "name",
+    sorted(
+        READS | {"onefoundry.read_dependency_result", "onefoundry.read_input_file", "onefoundry.list_agents"}
+    ),
 )
 def test_interrupted_reads_reconcile_without_inventing_a_result(name: str) -> None:
     tools = TaskSessionTools.__new__(TaskSessionTools)

@@ -14,7 +14,7 @@ from agents import MaxTurnsExceeded, ModelBehaviorError
 from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
 from agents.models.openai_responses import OpenAIResponsesModel
 
-from onefoundry.gateway_errors import Conflict, Unavailable
+from onefoundry.gateway_errors import Conflict, NotFound, Unavailable
 from onefoundry.profile_text_runtime import ProfileTextRuntime
 from onefoundry.settings import Settings
 from onefoundry.task_session_context import TaskSessionContext
@@ -46,6 +46,69 @@ def _runtime(provider: str, model: str = "m-1", **values: object) -> ProfileText
 
 
 SETTINGS = Settings(db_password="test-only")
+
+
+@pytest.mark.parametrize("stage", ["bind", "reconcile", "context", "specifications"])
+@pytest.mark.parametrize(
+    ("failure", "code"),
+    [(Conflict, "conflict"), (NotFound, "not_found"), (ValueError, "invalid_value")],
+)
+def test_preflight_saves_only_owned_stage_and_type(
+    monkeypatch: pytest.MonkeyPatch,
+    stage: str,
+    failure: type[Exception],
+    code: str,
+) -> None:
+    import onefoundry.task_session_sdk_turn as sdk_turn
+
+    project_id, attempt_id, session_id, profile_id = (uuid4() for _ in range(4))
+    engine = MagicMock()
+    engine.connect.return_value.__enter__.return_value.scalar.return_value = None
+    worker = TaskSessionSdkTurn(cast(Any, SimpleNamespace(engine=engine)), SETTINGS)
+    worker.attempts = Mock()
+    worker.attempts.settle.return_value = {"outcome": "failed"}
+    closed = AsyncMock()
+    worker.model_factory = lambda _runtime, _settings: TeamModel(
+        cast(Any, object()), "fixture", "fixture", False, False, cast(Any, SimpleNamespace(close=closed))
+    )
+    monkeypatch.setattr(sdk_turn, "configured_profile", lambda *_args: {})
+    monkeypatch.setattr(sdk_turn, "profile_blockers", lambda *_args: [])
+    monkeypatch.setattr(sdk_turn, "resolve", lambda *_args: cast(Any, object()))
+
+    def maybe_fail(at: str) -> None:
+        if stage == at:
+            raise failure("private_key=protected-do-not-save")
+
+    def specifications() -> list[dict[str, object]]:
+        maybe_fail("specifications")
+        return [{"tools": []}]
+
+    def prepare(*_args: object) -> SimpleNamespace:
+        maybe_fail("context")
+        return SimpleNamespace(prompt="unused")
+
+    monkeypatch.setattr(sdk_turn, "bind", lambda *_args: maybe_fail("bind"))
+    monkeypatch.setattr(
+        sdk_turn,
+        "TaskSessionTools",
+        lambda *_args: SimpleNamespace(
+            reconcile_previous_actions=lambda: maybe_fail("reconcile"),
+            specifications=specifications,
+        ),
+    )
+    monkeypatch.setattr(TaskSessionContext, "prepare", prepare)
+    provider_run = Mock(side_effect=AssertionError("provider must not run"))
+    monkeypatch.setattr(sdk_turn, "_run", provider_run)
+
+    assert worker.run_claimed(
+        project_id, {"id": attempt_id, "session_id": session_id, "profile_id": profile_id}
+    ) == {"outcome": "failed"}
+    worker.attempts.settle.assert_called_once_with(
+        project_id, attempt_id, "failed", reason=f"runner_preflight_{stage}_{code}"
+    )
+    assert "protected-do-not-save" not in str(worker.attempts.settle.call_args)
+    closed.assert_awaited_once()
+    provider_run.assert_not_called()
 
 
 @pytest.mark.parametrize(

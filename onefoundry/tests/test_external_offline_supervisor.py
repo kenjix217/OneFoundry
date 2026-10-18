@@ -31,6 +31,7 @@ from runner.external_offline_supervisor import (
     process_job,
     run_pending,
 )
+from runner.external_service import _manifest
 from runner.fixture_git import Deadline, _test
 from runner.live_progress_spool import LiveProgressJournal, read_progress
 from runner.provider_progress import LiveProgressParser
@@ -167,7 +168,7 @@ def _config(spool: Path) -> OfflineSupervisorConfig:
     return OfflineSupervisorConfig(spool, FIXTURE_IMAGE, CODEX_IMAGE, CLAUDE_IMAGE)
 
 
-def _job(spool: Path, adapter: str = "codex_cli") -> Path:
+def _job(spool: Path, adapter: str = "codex_cli", *, wall_seconds: int = 45) -> Path:
     attempt_id = str(uuid4())
     payload: dict[str, object] = {
         "schema_version": 1,
@@ -181,13 +182,23 @@ def _job(spool: Path, adapter: str = "codex_cli") -> Path:
         "actor_id": f"profile:{uuid4()}",
         "task_title": "Repair the fixture",
         "task_instructions": "Make add_one add one and run the tests.",
-        "limits": {"wall_seconds": 45, "max_log_bytes": 16384, "max_diff_bytes": 32768},
+        "limits": {"wall_seconds": wall_seconds, "max_log_bytes": 16384, "max_diff_bytes": 32768},
     }
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     payload["request_sha256"] = hashlib.sha256(encoded).hexdigest()
     path = spool / "jobs" / f"{attempt_id}.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
+
+
+@pytest.mark.parametrize("wall_seconds", [45, 60])
+def test_job_helper_records_valid_wall_budget(tmp_path: Path, wall_seconds: int) -> None:
+    config = _config(tmp_path / "external")
+    if wall_seconds == 45:
+        path = _job(config.spool, "claude_code")
+    else:
+        path = _job(config.spool, "claude_code", wall_seconds=wall_seconds)
+    assert _manifest(path)["limits"]["wall_seconds"] == wall_seconds
 
 
 @pytest.mark.parametrize("adapter", ["codex_cli", "claude_code"])
@@ -331,7 +342,10 @@ def test_pinned_containers_complete_both_offline_jobs(tmp_path: Path) -> None:
             )
             for name in ("jobs", "claims", "receipts", "artifacts"):
                 (config.spool / name).mkdir(parents=True, exist_ok=True)
-            jobs = [_job(config.spool, adapter) for adapter in ("codex_cli", "claude_code")]
+            jobs = [
+                _job(config.spool, "codex_cli"),
+                _job(config.spool, "claude_code", wall_seconds=60),
+            ]
             assert run_pending(config) == 2
             assert run_pending(config) == 0
             for job in jobs:

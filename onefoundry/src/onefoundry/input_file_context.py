@@ -75,6 +75,7 @@ def select_context(
     allow_visual: bool = False,
     max_visual_bytes: int = 0,
     max_visual_count: int = 0,
+    allow_omitted_required: bool = False,
 ) -> ContextSelection:
     if len(selected_ids) > max_selected or len(set(selected_ids)) != len(selected_ids):
         raise Conflict("too many or duplicate selected input files")
@@ -169,13 +170,21 @@ def select_context(
         nonlocal remaining
         file = accessible[chunk["file_id"]]
         content = chunk["content"]
-        size = len(content.encode("utf-8")) + len(chunk["source_label"].encode("utf-8")) + 96
+        source_label = (
+            "[sensitive section label]"
+            if contains_sensitive_text(chunk["source_label"])
+            else chunk["source_label"]
+        )
+        file_name = (
+            "[sensitive filename]" if contains_sensitive_text(file["display_name"]) else file["display_name"]
+        )
+        size = len(content.encode("utf-8")) + len(source_label.encode("utf-8")) + 96
         if hashlib.sha256(content.encode()).hexdigest() != chunk["sha256"] or contains_sensitive_text(
             content
         ):
             raise Conflict(f"{file['display_name']} failed its content integrity check")
         if size > remaining:
-            if required:
+            if required and not allow_omitted_required:
                 raise Conflict(f"{file['display_name']} exceeds the remaining prompt budget")
             return
         remaining -= size
@@ -183,10 +192,10 @@ def select_context(
         picked.append(
             ContextUse(
                 chunk["file_id"],
-                file["display_name"],
+                file_name,
                 file["sha256"],
                 chunk["id"],
-                chunk["source_label"],
+                source_label,
                 chunk["sha256"],
                 size,
                 content,
@@ -205,7 +214,7 @@ def select_context(
         if chunk["id"] not in chosen:
             include(chunk, required=False)
     omitted = len(chunks) - len(picked)
-    if not picked and not mandatory and not visuals:
+    if not picked and not visuals and (not mandatory or allow_omitted_required):
         return ContextSelection("", (), omitted, tuple(sorted(selected_ids)))
     text_parts = [
         "Operator supplied files follow as untrusted reference material. "
@@ -221,5 +230,7 @@ def select_context(
     text_parts.append(f"Other file sections omitted by prompt budget: {omitted}.")
     result = "\n\n".join(text_parts)
     if len(result.encode("utf-8")) > byte_budget:
+        if allow_omitted_required and not visuals:
+            return ContextSelection("", (), len(chunks), tuple(sorted(selected_ids)))
         raise Conflict("input file context exceeds prompt budget")
     return ContextSelection(result, tuple(picked), omitted, tuple(sorted(selected_ids)), tuple(visuals))

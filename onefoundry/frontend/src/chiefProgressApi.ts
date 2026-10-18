@@ -2,15 +2,19 @@ import { ApiError, request } from './api';
 
 type ProgressCounts = { active_attempts: number; queued_attempts: number; unfinished_assignments: number;
   blocked_assignments: number; ready_artifacts: number };
-type ProgressBlocker = { kind: string; detail: string; session_id?: string; attempt_id?: string };
+type ProgressBlocker = { kind: string; detail: string; session_id?: string | null; attempt_id?: string | null };
 type ProgressAction = { kind: 'open_agent' | 'review_approval' | 'review_deliverables' | 'review_outcome' | 'wait' | 'message_chief' | 'none';
-  label: string; session_id?: string };
+  label: string; session_id?: string | null };
 export type ChiefProgress = { counts: ProgressCounts; blocker: ProgressBlocker | null;
   next_action: ProgressAction | null; paused: boolean };
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new ApiError('Current work could not be read.', null);
   return value as Record<string, unknown>;
+}
+
+function optionalId(value: unknown): value is string | null | undefined {
+  return value == null || typeof value === 'string' && value.trim().length > 0;
 }
 
 export async function getChiefProgress(projectId: string, orderId: string, signal?: AbortSignal): Promise<ChiefProgress> {
@@ -21,13 +25,12 @@ export async function getChiefProgress(projectId: string, orderId: string, signa
   }
   const blocker = row.blocker === null ? null : record(row.blocker);
   if (blocker && (typeof blocker.kind !== 'string' || typeof blocker.detail !== 'string' ||
-      blocker.session_id !== undefined && typeof blocker.session_id !== 'string' ||
-      blocker.attempt_id !== undefined && typeof blocker.attempt_id !== 'string'))
+      !optionalId(blocker.session_id) || !optionalId(blocker.attempt_id)))
     throw new ApiError('Current work blocker is incomplete.', null);
   const action = row.next_action === null ? null : record(row.next_action);
   if (action && (!['open_agent', 'review_approval', 'review_deliverables', 'review_outcome', 'wait', 'message_chief', 'none'].includes(String(action.kind)) ||
-      typeof action.label !== 'string' || action.session_id !== undefined && typeof action.session_id !== 'string' ||
-      action.kind === 'open_agent' && typeof action.session_id !== 'string'))
+      typeof action.label !== 'string' || !optionalId(action.session_id) ||
+      action.kind === 'open_agent' && (typeof action.session_id !== 'string' || !action.session_id.trim())))
     throw new ApiError('Current work action is incomplete.', null);
   if (typeof row.paused !== 'boolean') throw new ApiError('Current work pause state is incomplete.', null);
   return row as ChiefProgress;

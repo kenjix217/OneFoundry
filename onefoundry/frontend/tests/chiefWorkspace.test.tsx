@@ -192,7 +192,8 @@ it('opens agent details without a second composer or specialist management', asy
     return json([]);
   }));
   const user = userEvent.setup(); renderWorkspace(row.id);
-  await user.click(await screen.findByRole('button', { name: /Agent ↗/ }));
+  await user.click(await screen.findByText('Past agent work (1)'));
+  await user.click(screen.getByRole('button', { name: 'Open Agent: Verify the source brief. (Past)' }));
   const panel = screen.getByRole('dialog', { name: 'Agent' });
   expect(within(panel).getByText('Verify the source brief.')).toBeInTheDocument();
   expect(screen.getAllByRole('textbox', { name: 'Message Chief' })).toHaveLength(1);
@@ -371,6 +372,41 @@ it('lists distinct saved deliverables from the same run', async () => {
   expect(fetch.mock.calls.some(([path]) => path.endsWith('/workspace-artifacts/artifact-2'))).toBe(true);
 });
 
+it('shows six readable recent files, all exact artifacts on request, and keeps a selected preview', async () => {
+  const trace = 'f1e01ea2-6782-41fb-b84d-c6aa61d9c742';
+  const longTitle = `REFRESH operating-cost handoff ${trace} now that public search is ready and the source evidence has changed for the DistrictAI pricing review`;
+  const files = Array.from({ length: 8 }, (_, index) => ({ id: `artifact-${index + 1}`, run_id: 'run-1',
+    profile_id: 'research-1', profile_name: 'Researcher', kind: 'markdown', status: 'ready', work_order_title: longTitle }));
+  const savedArtifacts = files.map((file) => ({ id: file.id, kind: 'markdown', mime_type: 'text/markdown',
+    sha256: 'a'.repeat(64), byte_size: 20, status: 'ready', created_at: '2026-10-18T12:00:00Z', finished_at: '2026-10-18T12:01:00Z' }));
+  const fetch = vi.fn(async (path: string) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([row]);
+    if (path.endsWith('/team-session')) return json(view);
+    if (path.endsWith('/team-session/artifacts')) return json(files);
+    if (path.endsWith('/runs/run-1/workspace-artifacts')) return json(savedArtifacts);
+    if (path.endsWith('/runs/run-1/workspace-artifacts/artifact-8')) return json({ ...savedArtifacts[7], content: 'Exact eighth deliverable' });
+    return json([]);
+  });
+  vi.stubGlobal('fetch', fetch);
+  renderWorkspace(row.id);
+  const deliveries = await screen.findByRole('region', { name: 'Saved deliverables' });
+  expect(within(deliveries).getAllByRole('button', { name: /Open saved file/ })).toHaveLength(6);
+  expect(within(deliveries).getAllByText(/REFRESH operating-cost handoff/)[0]).not.toHaveTextContent(trace);
+  expect(within(deliveries).queryByRole('button', { name: new RegExp(trace) })).not.toBeInTheDocument();
+  await userEvent.setup().click(within(deliveries).getAllByText('Full task title')[0]);
+  expect(within(deliveries).getAllByText(longTitle)[0]).toBeVisible();
+  expect(within(deliveries).getByRole('button', { name: 'Show all 8 files' })).toHaveAttribute('aria-expanded', 'false');
+  await userEvent.setup().click(within(deliveries).getByRole('button', { name: 'Show all 8 files' }));
+  expect(within(deliveries).getAllByRole('button', { name: /Open saved file/ })).toHaveLength(8);
+  await userEvent.setup().click(within(deliveries).getByRole('button', { name: /Open saved file 8/ }));
+  expect(await screen.findByText('Exact eighth deliverable')).toBeInTheDocument();
+  await userEvent.setup().click(within(deliveries).getByRole('button', { name: 'Show recent 6 files' }));
+  expect(within(deliveries).getAllByRole('button', { name: /Open saved file/ })).toHaveLength(6);
+  expect(screen.getByText('Exact eighth deliverable')).toBeInTheDocument();
+  expect(fetch.mock.calls.some(([path]) => path.endsWith('/workspace-artifacts/artifact-8'))).toBe(true);
+});
+
 it('requires a reasoned operator decision for an exact unknown child attempt', async () => {
   const child = { id: 'child-unknown', profile_id: 'research-1', work_order_id: 'child-order', status: 'closed', parent_session_id: 'session-1' };
   const acknowledgement = vi.fn();
@@ -387,7 +423,8 @@ it('requires a reasoned operator decision for an exact unknown child attempt', a
     return json([]);
   }));
   renderWorkspace(row.id);
-  await userEvent.setup().click(await screen.findByRole('button', { name: /Agent ↗/ }));
+  await userEvent.setup().click(await screen.findByText('Past agent work (1)'));
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Open Agent: Research sources (Past)' }));
   const panel = screen.getByRole('dialog', { name: 'Agent' });
   expect(await within(panel).findByText(/Unknown outcome needs your decision/)).toBeInTheDocument();
   expect(acknowledgement).not.toHaveBeenCalled();

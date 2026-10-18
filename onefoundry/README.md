@@ -385,6 +385,8 @@ Work orders and run timelines show **Triggered by**, including the event and ori
 
 Microsoft **Sign out everywhere** is a separate operator-confirmed action, available only for a work/school account explicitly connected with `User.RevokeSessions.All`. It revokes all that user's Microsoft app/browser sessions and disables local token use before one durable attempt. Reusing its request ID reads the receipt. Removal only deletes OneFoundry's local Microsoft credential; the UI links to Microsoft consent management. Remove dependent mailboxes and folders first. Personal Microsoft accounts do not support this action.
 
+Team agents can use `onefoundry.read_input_file` to list attached text files and read bounded pages when their contents do not fit in the prompt. Access follows existing project and work-order attachment links; a file ID alone grants no access. Text-file pages preserve the original UTF-8 bytes and include file and representation hashes; extracted documents identify their separate text representation. Agents must read every required page before claiming complete inspection. Unready, altered, sensitive or out-of-scope files fail explicitly.
+
 Team planning keeps the configured context and roster bounds. Oversized confirmed dependencies carry exact result/message/hash references and an explicit incomplete-content notice; agents use `onefoundry.read_dependency_result` to read every scoped page before evaluating those inputs. `onefoundry.list_agents` pages project profile metadata without granting tools. Stored results and artifacts are unchanged. Required references that cannot fit fail before a provider call with `team_context_budget_exceeded`; shorten required instructions before explicitly continuing.
 
 

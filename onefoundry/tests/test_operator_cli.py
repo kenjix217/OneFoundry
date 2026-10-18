@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from argparse import Namespace
 from pathlib import Path
 
@@ -128,6 +129,76 @@ def test_doctor_detects_wrong_running_image(tmp_path: Path, monkeypatch: pytest.
     assert result["ok"] is False
     assert result["checks"]["runtime_images"]["ok"] is False
     assert "differs" in str(result["checks"]["runtime_images"]["detail"])
+
+
+def test_doctor_uses_requested_or_default_health_deadline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    home = tmp_path / "home"
+    config = home / "data/config"
+    config.mkdir(parents=True)
+    private_env(config)
+    monkeypatch.setattr(
+        onefoundry_update, "read_install", lambda _home: (home / "release", {"project": "pilot"})
+    )
+    monkeypatch.setattr(
+        operator_doctor,
+        "validate_manifest",
+        lambda _release: {
+            "version": "0.1.2",
+            "commit": "a" * 40,
+            "images": {"runtime": "runtime", "runner": "runner", "input-worker": "worker"},
+            "image_ids": {"runtime": "expected", "runner": "expected", "worker": "expected"},
+        },
+    )
+    monkeypatch.setattr(onefoundry_update, "verify_loaded_images", lambda _release: None)
+    monkeypatch.setattr(onefoundry_update, "volume_names", lambda *_args: ["pilot_postgres_data"])
+    monkeypatch.setattr(
+        onefoundry_update,
+        "compose",
+        lambda *_args, **_kwargs: (
+            "app\ndb\nmailpit\nrunner\nexternal-runner\ninput-file-worker"
+            if _args[3] == "ps" and "--services" in _args
+            else "container"
+        ),
+    )
+    monkeypatch.setattr(onefoundry_update, "run", lambda *_args, **_kwargs: "expected")
+    deadlines: list[int] = []
+
+    def health(_home: Path, _release: Path, _project: str, *, timeout: int) -> None:
+        deadlines.append(timeout)
+
+    monkeypatch.setattr(onefoundry_update, "health", health)
+    assert operator_doctor.report(home, health_timeout_seconds=120)["ok"] is True
+    assert operator_doctor.report(home)["ok"] is True
+    assert deadlines == [120, 90]
+
+
+def test_doctor_cli_forwards_existing_health_deadline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    deadlines: list[int] = []
+
+    def print_report(_home: Path, health_timeout_seconds: int = 90) -> bool:
+        deadlines.append(health_timeout_seconds)
+        return True
+
+    monkeypatch.setattr(operator_doctor, "print_report", print_report)
+    monkeypatch.setattr(sys, "argv", ["onefoundry", "doctor", "--health-timeout-seconds", "120"])
+    onefoundry_update.main(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["onefoundry", "doctor"])
+    onefoundry_update.main(tmp_path)
+    assert deadlines == [120, 90]
+
+
+@pytest.mark.parametrize("value", ["0", "601", "bad"])
+def test_doctor_cli_rejects_invalid_health_deadline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    monkeypatch.setattr(sys, "argv", ["onefoundry", "doctor", "--health-timeout-seconds", value])
+    with pytest.raises(SystemExit) as error:
+        onefoundry_update.main(tmp_path)
+    assert error.value.code == 2
 
 
 def test_backup_stops_snapshots_and_restarts_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -4,6 +4,7 @@ import { ApiError } from './api';
 import { changeChiefConversation, lookupChiefMessage, sendChiefMessage, type ChiefMessageRequest, type ChiefReceipt } from './chiefWorkspaceApi';
 import { useChiefWorkspace } from './useChiefWorkspace';
 import { ChiefAgentPanel } from './ChiefAgentPanel';
+import { ChiefDelegatedAgents } from './ChiefDelegatedAgents';
 import { ChiefAgentRecovery } from './ChiefAgentRecovery';
 import { ChiefConversationText, isPublicAgentMessage, publicMessage } from './ChiefConversationText';
 import { ChiefApprovals } from './ChiefApprovals';
@@ -168,7 +169,7 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
       onReviewOutcome={() => transcript.current?.querySelector<HTMLElement>('.work-review-actions textarea')?.focus()}
       onResume={order.paused && !order.archived ? () => { void control('resume'); } : undefined}
       resumeDisabled={busy || reconnecting || state.resolving || pending.current !== null || restored.current !== null} />}
-    {state.view && state.view.children.length > 0 && <nav className="chief-agents" aria-label="Delegated agents">{state.view.children.map((child) => <button key={child.id} onClick={() => state.setAgentId(child.id)}>{profiles.find((item) => item.id === child.profile_id)?.name ?? 'Agent'} <span>↗</span></button>)}</nav>}
+    {state.view && <ChiefDelegatedAgents children={state.view.children} assignments={state.view.assignments} profiles={profiles} onOpen={state.setAgentId} />}
     <div className="chief-transcript" ref={transcript}>
       {order?.canonical_chief && state.view && <div ref={rootRecovery}><ChiefAgentRecovery projectId={project.id} orderId={order.id} view={state.view}
         onChanged={async () => { const saved = await getTeamSession(project.id, order.id); state.refresh(); return saved; }} /></div>}

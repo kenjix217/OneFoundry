@@ -99,7 +99,9 @@ def progress(gateway: "ToolGateway", project_id: UUID, order_id: UUID) -> dict[s
             connection,
             "SELECT t.attempt_id,t.session_id FROM task_session_tool_calls t "
             "JOIN task_sessions s ON s.project_id=t.project_id AND s.id=t.session_id "
+            "JOIN task_session_attempts a ON a.project_id=t.project_id AND a.id=t.attempt_id "
             "WHERE t.project_id=:p AND s.root_work_order_id=:o AND t.status='started' "
+            "AND a.status<>'running' "
             "ORDER BY t.created_at,t.id LIMIT 1",
             project_id,
             order_id,

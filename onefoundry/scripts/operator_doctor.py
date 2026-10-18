@@ -13,7 +13,7 @@ from scripts.operator_config import values
 from scripts.release_bundle import validate_manifest
 
 
-def report(home: Path) -> dict[str, Any]:
+def report(home: Path, health_timeout_seconds: int = ops.DEFAULT_HEALTH_TIMEOUT_SECONDS) -> dict[str, Any]:
     checks: dict[str, dict[str, object]] = {}
 
     def check(name: str, operation: Callable[[], object]) -> None:
@@ -77,14 +77,14 @@ def report(home: Path) -> dict[str, Any]:
     check("runtime_images", runtime_images)
 
     def readiness() -> str:
-        ops.health(home, release, project, timeout=3)
+        ops.health(home, release, project, timeout=health_timeout_seconds)
         return "ready"
 
     check("readiness", readiness)
     return {"ok": all(item["ok"] for item in checks.values()), "checks": checks}
 
 
-def print_report(home: Path) -> bool:
-    result = report(home)
+def print_report(home: Path, health_timeout_seconds: int = ops.DEFAULT_HEALTH_TIMEOUT_SECONDS) -> bool:
+    result = report(home, health_timeout_seconds=health_timeout_seconds)
     print(json.dumps(result, sort_keys=True))
     return bool(result["ok"])

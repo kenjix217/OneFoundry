@@ -427,11 +427,15 @@ class TaskSessionSdkTurn:
         except (Conflict, NotFound, TeamModelUnavailable, InvalidRequestError, ValueError):
             # Nothing was sent; the operator must fix the agent's model account.
             return self.attempts.settle(project_id, attempt_id, "failed", reason="agent_model_unavailable")
+        preflight_stage = "bind"
         try:
             bind(self.gateway, project_id, claimed)
             tools = TaskSessionTools(self.gateway, project_id, session_id, attempt_id)
+            preflight_stage = "reconcile"
             tools.reconcile_previous_actions()
+            preflight_stage = "context"
             snapshot = TaskSessionContext(self.gateway, self.settings).prepare(project_id, attempt_id)
+            preflight_stage = "specifications"
             specifications = list(tools.specifications()[0]["tools"])
         except (Conflict, NotFound, Unavailable, ValueError) as error:
             if bound.client is not None:
@@ -451,7 +455,19 @@ class TaskSessionSdkTurn:
                     "failed",
                     reason=reason if reason in MEMORY_UNAVAILABLE_REASONS else "runner_preflight_unavailable",
                 )
-            return self.attempts.settle(project_id, attempt_id, "failed", reason="runner_preflight_failed")
+            failure_code = (
+                "conflict"
+                if isinstance(error, Conflict)
+                else "not_found"
+                if isinstance(error, NotFound)
+                else "invalid_value"
+            )
+            return self.attempts.settle(
+                project_id,
+                attempt_id,
+                "failed",
+                reason=f"runner_preflight_{preflight_stage}_{failure_code}",
+            )
         agents_debug.DONT_LOG_MODEL_DATA = True
         agents_debug.DONT_LOG_TOOL_DATA = True
         set_tracing_disabled(True)

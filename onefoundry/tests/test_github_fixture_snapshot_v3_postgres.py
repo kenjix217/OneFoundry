@@ -206,7 +206,11 @@ def test_v3_snapshot_requires_new_approval_and_exact_bundle_readback(tmp_path: P
                 queued = post(client, f"{endpoint_path}/{other_approval}/dispatch").json()
                 attempt2 = queued["attempt_id"]
                 second = process_job(spool / "jobs" / f"{attempt2}.json", supervisor)
-                assert second is not None and second["snapshot_sha256"] == receipt["snapshot_sha256"]
+                assert second is not None
+                assert second["status"] == "done", {
+                    key: second[key] for key in ("status", "reason_code", "snapshot_sha256")
+                }
+                assert second["snapshot_sha256"] == receipt["snapshot_sha256"]
                 bundle = snapshots / second["snapshot_path"]
                 bundle.write_bytes(bundle.read_bytes()[:-1] + b" ")
                 result = client.get(f"{endpoint_path}/{other_approval}")

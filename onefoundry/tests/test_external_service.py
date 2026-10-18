@@ -16,7 +16,7 @@ from onefoundry.external_code_schemas import ExternalCodeReceipt
 from runner.action_trace import ActionTrace
 from runner.contract import ContractError
 from runner.external_cli import CliRequest, CliResult, run_cli
-from runner.external_service import process_external_job, write_capabilities
+from runner.external_service import _manifest, process_external_job, write_capabilities
 from runner.fixture_git import TRACE_OBSERVER, Deadline, ExecutionError, _run, _test
 from runner.live_progress_spool import read_progress
 from runner.provider_progress import (
@@ -28,7 +28,7 @@ from runner.provider_progress import (
 )
 
 
-def _job(spool: Path, adapter: str = "codex_cli") -> Path:
+def _job(spool: Path, adapter: str = "codex_cli", *, wall_seconds: int = 15) -> Path:
     attempt_id = str(uuid4())
     payload: dict[str, object] = {
         "schema_version": 1,
@@ -42,7 +42,7 @@ def _job(spool: Path, adapter: str = "codex_cli") -> Path:
         "actor_id": f"profile:{uuid4()}",
         "task_title": "Repair the fixture",
         "task_instructions": "Make add_one add one and run the tests.",
-        "limits": {"wall_seconds": 15, "max_log_bytes": 16384, "max_diff_bytes": 32768},
+        "limits": {"wall_seconds": wall_seconds, "max_log_bytes": 16384, "max_diff_bytes": 32768},
     }
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     payload["request_sha256"] = hashlib.sha256(encoded).hexdigest()
@@ -50,6 +50,16 @@ def _job(spool: Path, adapter: str = "codex_cli") -> Path:
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
+
+
+@pytest.mark.parametrize("wall_seconds", [15, 60])
+def test_job_helper_records_valid_wall_budget(tmp_path: Path, wall_seconds: int) -> None:
+    spool = tmp_path / "external"
+    if wall_seconds == 15:
+        path = _job(spool, "claude_code")
+    else:
+        path = _job(spool, "claude_code", wall_seconds=wall_seconds)
+    assert _manifest(path)["limits"]["wall_seconds"] == wall_seconds
 
 
 def _fake_cli(tmp_path: Path, adapter: str) -> Path:

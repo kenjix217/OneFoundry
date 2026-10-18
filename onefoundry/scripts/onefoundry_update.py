@@ -50,6 +50,7 @@ LEGACY_RELEASE_FILES = frozenset(
 OPERATOR_RELEASE_FILES = frozenset(RELEASE_FILES - {"onefoundry/LICENSE"})
 VOLUME_PATTERN = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*")
 PROJECT_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]*")
+DEFAULT_HEALTH_TIMEOUT_SECONDS = 90
 
 
 def run(
@@ -848,7 +849,11 @@ def main(default_home: Path | None = None) -> None:
     parser.add_argument("--sha256")
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--project", default="onefoundry")
-    parser.add_argument("--health-timeout-seconds", type=health_timeout_seconds, default=90)
+    parser.add_argument(
+        "--health-timeout-seconds",
+        type=health_timeout_seconds,
+        default=DEFAULT_HEALTH_TIMEOUT_SECONDS,
+    )
     parser.add_argument("--restore-data", action="store_true")
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--tail", type=log_tail, default=100)
@@ -958,7 +963,7 @@ def main(default_home: Path | None = None) -> None:
         elif args.command == "doctor":
             from scripts.operator_doctor import print_report
 
-            if not print_report(args.home.resolve()):
+            if not print_report(args.home.resolve(), health_timeout_seconds=args.health_timeout_seconds):
                 raise RuntimeError("doctor found a failed check")
         elif args.command == "logs":
             if args.setting is not None or args.value is not None:

@@ -35,6 +35,7 @@ from onefoundry.role_tool_admission import (
 from onefoundry.role_web_admission import WebDependencyFailure, WebPolicyFailure, saved_web_correction
 from onefoundry.task_session_assignments import DelegateRequest, DependencyNotAccepted, TaskSessionAssignments
 from onefoundry.task_session_dependency_context import DependencyPageArgs, read_dependency_page
+from onefoundry.task_session_input_pages import InputFilePageArgs, read_input_file_page
 from onefoundry.task_session_store import TaskSessionStore, TeamLimitReached
 from onefoundry.task_session_team_context import team_roster
 from onefoundry.workflow_schemas import StrictModel, local_text
@@ -51,9 +52,11 @@ COMPLETE = f"{NAMESPACE}.submit_completion"
 CANCEL = f"{NAMESPACE}.cancel_assignment"
 RETRY = f"{NAMESPACE}.retry_assignment"
 READ_DEPENDENCY = f"{NAMESPACE}.read_dependency_result"
+READ_INPUT_FILE = f"{NAMESPACE}.read_input_file"
 LIST_AGENTS = f"{NAMESPACE}.list_agents"
 READ_ONLY = chief_session_tools.CHIEF_READS | {
     READ_DEPENDENCY,
+    READ_INPUT_FILE,
     LIST_AGENTS,
     self_extension_tools.READ,
     self_extension_tools.INSPECT,
@@ -185,7 +188,7 @@ class TaskSessionTools:
             tools.add(LIST_AGENTS)
         if not scope.get("actionable", True):
             return frozenset(tools)
-        tools.update((READ_DEPENDENCY, LIST_AGENTS))
+        tools.update((READ_DEPENDENCY, READ_INPUT_FILE, LIST_AGENTS))
         if chief or "delegate_agent_v1" in scope["allowed_tools"]:
             tools.add(DELEGATE)
         if chief and scope.get("has_blocked"):
@@ -222,6 +225,21 @@ class TaskSessionTools:
                         "Offsets are characters; preserve message ID and digest."
                     ),
                     "inputSchema": DependencyPageArgs.model_json_schema(),
+                }
+            )
+        if READ_INPUT_FILE in admitted:
+            specs.append(
+                {
+                    "type": "function",
+                    "name": "read_input_file",
+                    "description": (
+                        "Read an exact bounded page of a ready text file already attached to this project "
+                        "or root work order. Use the file IDs in the task input index. Read pages until "
+                        "next_offset is null before evaluating omitted content. Offsets are characters; "
+                        "original_utf8 preserves the uploaded .txt bytes and trailing newline, while "
+                        "extracted_sections identifies transformed text."
+                    ),
+                    "inputSchema": InputFilePageArgs.model_json_schema(),
                 }
             )
         if LIST_AGENTS in admitted:
@@ -747,7 +765,7 @@ class TaskSessionTools:
             return chief_session_tools.execute(
                 self.gateway, self.project_id, self.session_id, name, arguments, receipt_id
             )
-        if name in (READ_DEPENDENCY, LIST_AGENTS):
+        if name in (READ_DEPENDENCY, READ_INPUT_FILE, LIST_AGENTS):
             settings = self.gateway.live_text_settings
             if settings is None:
                 raise Unavailable("team settings unavailable")
@@ -764,6 +782,20 @@ class TaskSessionTools:
                         self.project_id,
                         self.session_id,
                         DependencyPageArgs.model_validate(arguments),
+                        page_budget // 2,
+                    )
+                if name == READ_INPUT_FILE:
+                    page_budget = (
+                        settings.onefoundry_max_context_bytes
+                        if settings.onefoundry_max_context_bytes is not None
+                        else settings.live_text_max_prompt_bytes
+                    )
+                    return read_input_file_page(
+                        connection,
+                        settings.input_file_root,
+                        self.project_id,
+                        scope["root_work_order_id"],
+                        InputFilePageArgs.model_validate(arguments),
                         page_budget // 2,
                     )
                 offset = AgentPageArgs.model_validate(arguments).offset
@@ -845,7 +877,7 @@ class TaskSessionTools:
         raise Conflict("team tool is not admitted")
 
     def invoke(self, name: str, arguments: Mapping[str, Any], call_id: str) -> dict[str, Any]:
-        """Return only bounded saved IDs/statuses; never expose input text or raw errors."""
+        """Return scoped, bounded receipts; never expose raw errors."""
         if not isinstance(call_id, str) or not 1 <= len(call_id) <= 200 or any(ord(c) < 32 for c in call_id):
             raise ValueError("invalid provider call identity")
         if not isinstance(arguments, Mapping):

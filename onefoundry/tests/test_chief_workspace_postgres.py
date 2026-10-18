@@ -122,6 +122,51 @@ def test_chief_progress_is_scoped_and_shows_queued_work(tmp_path: Path, quiet_wo
         assert client.get(f"/api/projects/{project}/chief-workspace/{uuid4()}/progress").status_code == 404
 
 
+def test_chief_progress_does_not_reconcile_started_tool_during_running_attempt(
+    tmp_path: Path, quiet_worker: None
+) -> None:
+    settings = settings_for(tmp_path)
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project, _ = project_with_models(client)
+        saved = command(client, project, "Prepare a local brief.")
+        pid = UUID(project)
+        gateway = ToolGateway(
+            create_engine(settings.database_url), "fixture-worker", live_text_settings=settings
+        )
+        attempts = TaskSessionAttempts(gateway)
+        claimed = attempts.claim_next(pid)
+        assert claimed is not None
+        with gateway.engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO task_session_tool_calls "
+                    "(id,project_id,actor_id,root_work_order_id,session_id,attempt_id,"
+                    "provider_call_id,tool_name,arguments_sha256) VALUES "
+                    "(:id,:p,'fixture-worker',:root,:session,:attempt,:call,"
+                    "'onefoundry.publish_update',:digest)"
+                ),
+                {
+                    "id": uuid4(),
+                    "p": pid,
+                    "root": UUID(saved["order_id"]),
+                    "session": UUID(saved["session_id"]),
+                    "attempt": claimed["id"],
+                    "call": "active-fixture-call",
+                    "digest": "0" * 64,
+                },
+            )
+        path = f"/api/projects/{project}/chief-workspace/{saved['order_id']}/progress"
+        active = client.get(path).json()
+        assert active["counts"]["active_attempts"] == 1
+        assert active["blocker"] is None
+        assert active["next_action"]["kind"] == "wait"
+        attempts.settle(pid, claimed["id"], "unknown", reason="runner_interrupted")
+        terminal = client.get(path).json()
+        assert terminal["blocker"]["kind"] == "started_action"
+        assert terminal["blocker"]["attempt_id"] == str(claimed["id"])
+        gateway.engine.dispose()
+
+
 def test_chief_progress_unknown_beats_pause_and_targets_exact_session(
     tmp_path: Path, quiet_worker: None
 ) -> None:

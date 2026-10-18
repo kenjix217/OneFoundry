@@ -9,8 +9,12 @@ else
 fi
 tmp_env=$(mktemp)
 project="onefoundry_check_$$"
+qa_owned_image=
 cleanup() {
   docker compose --env-file "$tmp_env" -p "$project" --profile test down -v --remove-orphans >/dev/null 2>&1 || true
+  if [ -n "$qa_owned_image" ]; then
+    docker image rm "$qa_owned_image" >/dev/null 2>&1 || true
+  fi
   rm -f "$tmp_env"
 }
 trap cleanup EXIT INT TERM
@@ -29,7 +33,13 @@ ONEFOUNDRY_EGRESS_TEST_IMAGE="${project}-test:latest" "$uv_bin" run --locked pyt
 ONEFOUNDRY_EGRESS_TEST_IMAGE="${project}-test:latest" "$uv_bin" run --locked pytest -q tests/test_external_offline_supervisor.py -m integration
 ONEFOUNDRY_EGRESS_TEST_IMAGE="${project}-test:latest" "$uv_bin" run --locked pytest -q tests/test_isolated_fixture_test.py -m integration
 
-ONEFOUNDRY_EGRESS_TEST_IMAGE="${project}-test:latest" "$uv_bin" run --locked pytest -q tests/test_repository_code.py tests/test_repository_failure_evidence.py -m integration
+repository_qa_image=${ONEFOUNDRY_REPOSITORY_QA_TEST_IMAGE:-}
+if [ -z "$repository_qa_image" ]; then
+  repository_qa_image="${project}-repository-qa:latest"
+  docker build --target repository-qa -t "$repository_qa_image" .
+  qa_owned_image=$repository_qa_image
+fi
+ONEFOUNDRY_EGRESS_TEST_IMAGE="${project}-test:latest" ONEFOUNDRY_REPOSITORY_QA_TEST_IMAGE="$repository_qa_image" "$uv_bin" run --locked pytest -q tests/test_repository_code.py tests/test_repository_failure_evidence.py -m integration
 
 ONEFOUNDRY_EGRESS_TEST_IMAGE="${project}-test:latest" "$uv_bin" run --locked pytest -q tests/test_repository_provider.py tests/test_repository_codex_observation.py -m integration
 ONEFOUNDRY_EGRESS_TEST_IMAGE="${project}-test:latest" "$uv_bin" run --locked pytest -q tests/test_repository_transport.py -m integration

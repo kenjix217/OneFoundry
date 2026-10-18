@@ -35,7 +35,7 @@ def provision_runtime_role(bootstrap: Settings, runtime: RuntimeRoleSettings) ->
         raise ValueError("APP_DB_USER must differ from the bootstrap DB_USER")
     conninfo = bootstrap.database_url.set(drivername="postgresql").render_as_string(hide_password=False)
     role = sql.Identifier(runtime.app_db_user)
-    with connect(conninfo, autocommit=True) as connection:
+    with connect(conninfo) as connection:
         existing = connection.execute(
             "SELECT rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls "
             "FROM pg_roles WHERE rolname = %s",

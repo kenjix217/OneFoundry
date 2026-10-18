@@ -89,18 +89,30 @@ class _PageText(HTMLParser):
         self.in_title = False
         self.title: list[str] = []
         self.body: list[str] = []
+        self.main_depth = 0
+        self.article_depth = 0
+        self.main_body: list[str] = []
+        self.article_body: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in {"script", "style", "noscript", "svg"}:
             self.hidden += 1
         elif tag == "title" and not self.hidden:
             self.in_title = True
+        elif tag == "main" and not self.hidden:
+            self.main_depth += 1
+        elif tag == "article" and not self.hidden:
+            self.article_depth += 1
 
     def handle_endtag(self, tag: str) -> None:
         if tag in {"script", "style", "noscript", "svg"} and self.hidden:
             self.hidden -= 1
         elif tag == "title":
             self.in_title = False
+        elif tag == "main" and self.main_depth:
+            self.main_depth -= 1
+        elif tag == "article" and self.article_depth:
+            self.article_depth -= 1
 
     def handle_data(self, data: str) -> None:
         if self.hidden:
@@ -109,6 +121,10 @@ class _PageText(HTMLParser):
             self.title.append(data)
         else:
             self.body.append(data)
+            if self.main_depth:
+                self.main_body.append(data)
+            if self.article_depth:
+                self.article_body.append(data)
 
 
 def _clean(value: str, limit: int) -> str:
@@ -197,6 +213,7 @@ class PublicWebClient:
         timeout_seconds: int,
         max_response_bytes: int,
         internal_search: bool = False,
+        accept_json: bool = False,
     ) -> tuple[str, str, bytes]:
         if not 1 <= timeout_seconds <= 30 or not 1024 <= max_response_bytes <= 2_000_000:
             raise PublicWebRejected("public web limits are invalid", code="web_limits_invalid")
@@ -217,6 +234,7 @@ class PublicWebClient:
                             deadline=deadline,
                             max_response_bytes=max_response_bytes,
                             internal_search=internal_search,
+                            accept_json=accept_json,
                             cancelled=cancelled,
                             connections=connections,
                         ),
@@ -259,6 +277,7 @@ class PublicWebClient:
         deadline: float,
         max_response_bytes: int,
         internal_search: bool,
+        accept_json: bool,
         cancelled: Event,
         connections: list[http.client.HTTPConnection],
     ) -> tuple[str, str, bytes]:
@@ -290,7 +309,11 @@ class PublicWebClient:
                 path,
                 headers={
                     "Host": "searxng:8080" if internal_search else host,
-                    "Accept": "text/html,text/plain,application/json",
+                    "Accept": (
+                        "application/json"
+                        if accept_json
+                        else "text/markdown,text/plain;q=0.9,text/html;q=0.8"
+                    ),
                     "Accept-Encoding": "identity",
                     "User-Agent": "OneFoundry/1",
                 },
@@ -316,7 +339,7 @@ class PublicWebClient:
             if declared is not None and (not declared.isdigit() or int(declared) > max_response_bytes):
                 raise PublicWebRejected("public web content exceeded limit", code="web_response_too_large")
             content_type = (response.getheader("Content-Type") or "").split(";", 1)[0].strip().lower()
-            if content_type not in {"text/html", "text/plain", "application/json"}:
+            if content_type not in {"text/html", "text/plain", "text/markdown", "application/json"}:
                 raise PublicWebRejected(
                     "public web content type is unavailable", code="web_response_content_type"
                 )
@@ -393,6 +416,7 @@ class PublicWebClient:
             timeout_seconds=timeout_seconds,
             max_response_bytes=max_response_bytes,
             internal_search=internal,
+            accept_json=True,
         )
         if content_type != "application/json":
             raise PublicWebRejected("public search response is invalid", code="web_search_response_invalid")
@@ -450,7 +474,7 @@ class PublicWebClient:
         source, content_type, payload = self._read(
             url, timeout_seconds=timeout_seconds, max_response_bytes=max_response_bytes
         )
-        if content_type not in {"text/html", "text/plain"}:
+        if content_type not in {"text/html", "text/plain", "text/markdown"}:
             raise PublicWebRejected(
                 "public page content type is unavailable", code="web_response_content_type"
             )
@@ -459,7 +483,14 @@ class PublicWebClient:
             parser = _PageText()
             parser.feed(decoded)
             title = _clean(" ".join(parser.title), 240)
-            page_text, text_truncated = _clean_excerpt(" ".join(parser.body), max_text_chars)
+            body = " ".join(parser.body)
+            body_excerpt, body_truncated = _clean_excerpt(body, max_text_chars)
+            page_text, text_truncated = body_excerpt, body_truncated
+            for primary in (parser.main_body, parser.article_body):
+                candidate, candidate_truncated = _clean_excerpt(" ".join(primary), max_text_chars)
+                if candidate:
+                    page_text, text_truncated = candidate, candidate_truncated
+                    break
         else:
             title = ""
             page_text, text_truncated = _clean_excerpt(decoded, max_text_chars)

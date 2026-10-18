@@ -6,7 +6,7 @@ check:
 	$(UV) run --locked mypy --config-file sdk/python/pyproject.toml sdk/python/src sdk/python/tests
 	$(UV) build sdk/python --offline --out-dir output/sdk-build-check
 	$(UV) run --locked pytest -q tests/test_gateway_extension_identity.py tests/test_gateway_extension_settings.py tests/test_gateway_extension_transport.py tests/test_gateway_extension_worker_runtime.py
-	$(UV) run --locked pytest -q tests/test_gateway_extension_credentials.py tests/test_gateway_extension_spool.py tests/test_gateway_extension_worker_readiness.py tests/test_webhook_origin.py tests/test_check_extension_isolation.py tests/test_extension_worker_child.py tests/test_extension_worker_host.py tests/test_extension_worker_supervisor.py tests/test_extension_fixture_test.py
+	$(UV) run --locked pytest -q tests/test_gateway_extension_credentials.py tests/test_gateway_extension_spool.py tests/test_gateway_extension_worker_readiness.py tests/test_webhook_origin.py tests/test_check_extension_isolation.py tests/test_check_postgres_script.py tests/test_extension_worker_child.py tests/test_extension_worker_host.py tests/test_extension_worker_supervisor.py tests/test_extension_fixture_test.py
 	$(UV) run --locked pytest -q tests/test_git_hygiene.py tests/test_install_gitleaks.py
 	$(UV) run --locked pytest -q tests/test_repository_failure_evidence.py -m "not integration"
 	$(UV) run --locked pytest -q tests/test_repository_source_safety.py
@@ -23,7 +23,7 @@ check:
 	$(UV) run --locked ruff format --check .
 	$(UV) run --locked ruff check .
 	$(UV) run --locked mypy
-	$(UV) run --locked pytest -q tests/test_input_file_bytes.py tests/test_input_file_context.py tests/test_input_file_extract.py tests/test_input_file_settings.py
+	$(UV) run --locked pytest -q tests/test_input_file_bytes.py tests/test_input_file_context.py tests/test_task_session_input_pages.py tests/test_input_file_extract.py tests/test_input_file_settings.py
 	$(UV) run --locked pytest -q tests/test_release_update.py tests/test_operator_cli.py
 	$(UV) run --locked pytest -q tests/test_task_automation_prompt.py
 	$(UV) run --locked pytest -q tests/test_chief_visibility.py tests/test_agent_conversation_policy.py tests/test_long_operator_messages.py

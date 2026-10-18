@@ -107,7 +107,7 @@ def test_real_pinned_claude_repairs_disposable_work_order(
     image, fixture_image = admitted_images
     original = hashlib.sha256((FIXTURE / "calculator.py").read_bytes()).hexdigest()
     spool = tmp_path / "external"
-    job = _job(spool, "claude_code")
+    job = _job(spool, "claude_code", wall_seconds=60)
     manifest = json.loads(job.read_text())
     receipt = bridge.process_synthetic_claude_job(job, spool, image, fixture_image)
     assert receipt is not None and receipt["status"] == "done", receipt

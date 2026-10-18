@@ -2,6 +2,9 @@
 
 from uuid import UUID, uuid4
 
+import pytest
+
+from onefoundry.gateway_errors import Conflict
 from onefoundry.input_file_context import select_context
 
 
@@ -127,3 +130,40 @@ def test_optional_project_section_can_be_omitted_when_budget_is_exhausted() -> N
     )
     assert chosen.text == ""
     assert chosen.omitted_chunks == 1
+
+
+def test_team_reader_mode_keeps_mandatory_file_available_with_zero_excerpt_budget() -> None:
+    import hashlib
+
+    file_id = uuid4()
+    content = "exact operator attachment"
+    connection = Connection(
+        [
+            {
+                "id": file_id,
+                "display_name": "source.txt",
+                "sha256": "a" * 64,
+                "byte_size": len(content),
+                "mime_type": "text/plain",
+                "status": "ready_text",
+                "reason_code": None,
+                "scope": "work_order",
+            }
+        ],
+        [
+            {
+                "id": uuid4(),
+                "file_id": file_id,
+                "ordinal": 0,
+                "source_label": "source.txt: text 1",
+                "content": content,
+                "sha256": hashlib.sha256(content.encode()).hexdigest(),
+                "rank": 0,
+            }
+        ],
+    )
+    with pytest.raises(Conflict, match="remaining prompt budget"):
+        select_context(connection, uuid4(), uuid4(), [], "inspect", 0, 8)
+    selection = select_context(connection, uuid4(), uuid4(), [], "inspect", 0, 8, allow_omitted_required=True)
+    assert selection.text == ""
+    assert selection.omitted_chunks == 1

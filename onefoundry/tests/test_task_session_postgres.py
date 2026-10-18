@@ -6,7 +6,9 @@ import os
 import sys
 import time
 from datetime import UTC, datetime, timedelta
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
@@ -14,11 +16,15 @@ import httpx2 as httpx
 import openai
 import pytest
 from agents.testing import ModelStep, ScriptedModel, assistant_message, function_call
+from alembic.operations import Operations
+from alembic.runtime.migration import MigrationContext
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from onefoundry.gateway_errors import Conflict, NotFound
+from onefoundry.input_file_bytes import InputFileBytes
+from onefoundry.input_file_worker import process_one
 from onefoundry.main import create_app
 from onefoundry.model_providers import DiscoveredModel
 from onefoundry.profile_text_runtime import ProfileTextRuntime
@@ -302,6 +308,168 @@ def _order(client: TestClient, name: str) -> tuple[str, str, str]:
     ready = client.post(f"{base}/work-orders/{order_response.json()['id']}/ready", headers=ORIGIN)
     assert ready.status_code == 200, ready.text
     return project_id, chief["id"], order_response.json()["id"]
+
+
+def test_team_reads_only_attached_ready_text_pages_and_prompt_lists_them(tmp_path: Path) -> None:
+    input_root = tmp_path / "input-files"
+    input_root.mkdir(mode=0o700)
+    settings = _settings(tmp_path).model_copy(
+        update={
+            "input_file_root": str(input_root),
+            "onefoundry_max_context_bytes": 32000,
+            "live_text_max_prompt_bytes": 32000,
+        }
+    )
+    with TestClient(create_app(settings), base_url="http://localhost:8765") as client:
+        project_id, chief_id, order_id = _order(client, "Paged attached text")
+        other_project, _other_chief, _other_order = _order(client, "Foreign input pages")
+        base = f"/api/projects/{project_id}"
+
+        def upload(project: str, suffix: str, scope: str, order: str | None, body: bytes) -> dict[str, Any]:
+            query = f"?scope={scope}" + (f"&work_order_id={order}" if order else "")
+            response = client.post(
+                f"/api/projects/{project}/input-files{query}",
+                content=body,
+                headers={**ORIGIN, "X-File-Name": suffix, "Content-Type": "application/octet-stream"},
+            )
+            assert response.status_code == 201, response.text
+            return cast(dict[str, Any], response.json())
+
+        original = ("Source café 中文, exact line.\n" * 2500).encode() + b"final newline\n"
+        attached = upload(project_id, "source.txt", "work_order", order_id, original)
+        staged = upload(project_id, "staged.txt", "staged", order_id, b"Staged text")
+        foreign = upload(other_project, "foreign.txt", "project", None, b"Foreign project text")
+        other_order = client.post(
+            f"{base}/work-orders",
+            json={"title": "Other order", "instructions": "Other private input", "profile_id": chief_id},
+            headers=ORIGIN,
+        ).json()
+        sibling = upload(project_id, "sibling.txt", "work_order", other_order["id"], b"Sibling text")
+        engine = create_engine(settings.database_url)
+        for _ in range(4):
+            assert process_one(engine, InputFileBytes(settings.input_file_root), settings)
+        base = f"{base}/work-orders/{order_id}/team-session"
+        opened = client.post(base, headers=ORIGIN).json()["session"]
+        bootstrap_url = settings.database_url.set(
+            username=os.environ["DB_USER"], password=os.environ["DB_PASSWORD"]
+        )
+        with create_engine(bootstrap_url).begin() as connection:
+            connection.execute(
+                text("UPDATE task_sessions SET execution_mode='team' WHERE project_id=:p AND id=:s"),
+                {"p": UUID(project_id), "s": UUID(opened["id"])},
+            )
+        assert (
+            client.post(
+                f"{base}/continue", json={"client_attempt_id": str(uuid4())}, headers=ORIGIN
+            ).status_code
+            == 202
+        )
+        gateway = ToolGateway(engine, "team-runner", live_text_settings=settings)
+        attempt = TaskSessionAttempts(gateway).claim_next(UUID(project_id))
+        assert attempt is not None and attempt["work_order_id"] == UUID(order_id)
+        bind_team_run(gateway, UUID(project_id), attempt)
+        snapshot = TaskSessionContext(gateway, settings).prepare(UUID(project_id), attempt["id"])
+        assert "onefoundry.read_input_file" in snapshot.prompt
+        assert attached["id"] in snapshot.prompt
+        assert staged["id"] not in snapshot.prompt
+        tools = TaskSessionTools(gateway, UUID(project_id), UUID(opened["id"]), attempt["id"])
+        assert "read_input_file" in {spec["name"] for spec in tools.specifications()[0]["tools"]}
+        listed = tools.invoke("onefoundry.read_input_file", {}, "list-files")
+        assert listed["success"], listed
+        index = json.loads(listed["contentItems"][0]["text"])
+        assert [item["file_id"] for item in index["files"]] == [attached["id"]]
+        for inaccessible in (staged, sibling, foreign):
+            denied = tools.invoke(
+                "onefoundry.read_input_file", {"file_id": inaccessible["id"]}, f"deny-{inaccessible['id']}"
+            )
+            assert not denied["success"]
+            assert json.loads(denied["contentItems"][0]["text"]) == {"reason": "tool_target_missing"}
+        offset = 0
+        pages: list[str] = []
+        while True:
+            response = tools.invoke(
+                "onefoundry.read_input_file", {"file_id": attached["id"], "offset": offset}, f"page-{offset}"
+            )
+            assert response["success"]
+            page = json.loads(response["contentItems"][0]["text"])
+            assert page["file_sha256"] == page["representation_sha256"] == attached["sha256"]
+            pages.append(page["content"])
+            if page["next_offset"] is None:
+                break
+            assert page["next_offset"] > offset
+            offset = page["next_offset"]
+        assert "".join(pages).encode() == original
+        assert not tools.invoke(
+            "onefoundry.read_input_file", {"file_id": attached["id"], "offset": -1}, "negative"
+        )["success"]
+        TaskSessionAttempts(gateway).settle(
+            UUID(project_id), attempt["id"], "done", public_reply="Read complete."
+        )
+        with pytest.raises(Conflict, match="outside an active agent turn"):
+            tools.invoke("onefoundry.read_input_file", {"file_id": attached["id"]}, "late")
+        engine.dispose()
+
+
+def test_input_file_page_migration_downgrade_and_reupgrade_preserve_receipts() -> None:
+    settings = Settings(
+        db_user=os.environ.get("APP_DB_USER", "onefoundry_app"), db_password=os.environ["APP_DB_PASSWORD"]
+    )
+    engine = create_engine(settings.database_url)
+    with engine.begin() as connection:
+        connection.execute(text("SET LOCAL search_path TO pg_temp, public"))
+        connection.execute(
+            text(
+                "CREATE TEMP TABLE task_session_tool_calls (tool_name text NOT NULL, "
+                "CONSTRAINT task_session_tool_calls_name_valid "
+                "CHECK (tool_name IN ('onefoundry.read_dependency_result')))"
+            )
+        )
+        path = Path(__file__).parents[1] / "migrations" / "versions" / "0094_input_file_pages.py"
+        spec = spec_from_file_location("input_file_pages_migration", path)
+        assert spec is not None and spec.loader is not None
+        migration = module_from_spec(spec)
+        spec.loader.exec_module(migration)
+        migration.__dict__["op"] = Operations(MigrationContext.configure(connection))
+
+        migration.upgrade()
+        connection.execute(
+            text("INSERT INTO task_session_tool_calls (tool_name) VALUES (:tool)"),
+            {"tool": migration.TOOL},
+        )
+        # This is the temporary fixture row; no public receipt or history is deleted.
+        connection.execute(
+            text("DELETE FROM task_session_tool_calls WHERE tool_name=:tool"), {"tool": migration.TOOL}
+        )
+        migration.downgrade()
+        assert (
+            connection.scalar(
+                text(
+                    "SELECT 1 FROM pg_constraint WHERE conrelid='task_session_tool_calls'::regclass "
+                    "AND conname='task_session_input_page_retired'"
+                )
+            )
+            == 1
+        )
+        with pytest.raises(IntegrityError), connection.begin_nested():
+            connection.execute(
+                text("INSERT INTO task_session_tool_calls (tool_name) VALUES (:tool)"),
+                {"tool": migration.TOOL},
+            )
+        migration.upgrade()
+        connection.execute(
+            text("INSERT INTO task_session_tool_calls (tool_name) VALUES (:tool)"),
+            {"tool": migration.TOOL},
+        )
+        with pytest.raises(RuntimeError, match="receipts exist"):
+            migration.downgrade()
+        assert (
+            connection.scalar(
+                text("SELECT count(*) FROM task_session_tool_calls WHERE tool_name=:tool"),
+                {"tool": migration.TOOL},
+            )
+            == 1
+        )
+    engine.dispose()
 
 
 def test_session_open_is_idempotent_and_project_bound(tmp_path: Path) -> None:
@@ -1258,6 +1426,7 @@ def test_scoped_team_tools_save_idempotent_actions_and_deny_other_projects(tmp_p
             "publish_update",
             "delegate_agent",
             "read_dependency_result",
+            "read_input_file",
             "list_agents",
             "read_project_status",
             "read_work_order",
@@ -1326,6 +1495,7 @@ def test_scoped_team_tools_save_idempotent_actions_and_deny_other_projects(tmp_p
             "publish_update",
             "report_result",
             "read_dependency_result",
+            "read_input_file",
             "list_agents",
         }
         result = child_tools.invoke(
