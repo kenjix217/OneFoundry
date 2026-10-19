@@ -227,3 +227,10 @@ def test_missing_git_identity_owner_fails_without_exposing_output(
     monkeypatch.setattr("sys.argv", ["git_hygiene.py"])
     assert git_hygiene.main() == 2
     assert "private output is withheld" not in capsys.readouterr().err
+
+
+def test_github_checks_require_explicit_manual_dispatch() -> None:
+    """Routine source publication must not consume hosted Actions minutes."""
+    workflow = (REPO_ROOT / ".github/workflows/onefoundry-check.yml").read_text()
+    trigger = workflow.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
+    assert trigger.strip() == "workflow_dispatch:"

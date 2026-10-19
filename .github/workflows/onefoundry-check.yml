@@ -1,18 +1,9 @@
 name: OneFoundry check
 
+# Hosted checks run only when the operator explicitly requests them.
+# Normal pushes to main and pull requests do not consume Actions minutes.
 on:
-  push:
-    paths:
-      - "onefoundry/**"
-      - ".githooks/**"
-      - ".gitignore"
-      - ".github/workflows/onefoundry-check.yml"
-  pull_request:
-    paths:
-      - "onefoundry/**"
-      - ".githooks/**"
-      - ".gitignore"
-      - ".github/workflows/onefoundry-check.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
