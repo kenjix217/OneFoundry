@@ -1,5 +1,10 @@
 # OneFoundry changelog
 
+## 0.21.4
+
+- Keep the conversation readable in short browser panels by compacting Current work, its actions and the empty composer while preserving status, recovery controls and entered text.
+- Let the operator CLI change the existing validated project input-file count limit, including staged files, without changing the byte quota or permitting agents to raise their own limits.
+
 ## 0.21.3
 
 - Open saved-file references in Chief and agent messages through verified previews of files from the current conversation. Keep unknown, malformed and ambiguous references as text.

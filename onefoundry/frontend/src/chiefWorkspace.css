@@ -165,3 +165,21 @@
   .chief-welcome{margin:8vh auto}
   .chief-history .task-activity-list{grid-template-columns:1fr}
 }
+@media(max-height:600px){
+  .chief-chat-header{min-height:58px;padding-top:8px;padding-bottom:8px}
+  .chief-progress{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:8px 16px}
+  .chief-progress p{margin:0;max-height:2.8em;overflow-y:auto}
+  .chief-progress-counts{gap:2px 8px}
+  .chief-progress-actions{grid-column:2;grid-row:1 / span 3;align-self:center;flex-direction:column;gap:4px;margin:0}
+  .chief-workspace .chief-progress-actions>button{min-height:36px;padding:5px 9px}
+  .chief-progress>small{margin:0}
+  .chief-transcript{padding-top:12px;padding-bottom:8px}
+  .chief-composer-wrap{padding-top:4px;padding-bottom:5px}
+  .chief-composer{padding:5px 10px 4px}
+  .chief-composer textarea:placeholder-shown{height:36px;min-height:36px}
+  .chief-composer-wrap>small{display:none}
+}
+@media(max-height:600px) and (max-width:720px){
+  .chief-progress{grid-template-columns:minmax(0,1fr)}
+  .chief-progress-actions{grid-column:1;grid-row:auto;flex-direction:row;flex-wrap:wrap}
+}

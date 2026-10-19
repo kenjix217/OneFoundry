@@ -25,6 +25,7 @@ def test_config_only_exposes_validated_nonsecret_settings(tmp_path: Path) -> Non
         "MAILPIT_UI_PORT": None,
         "RUNNER_WALL_SECONDS": None,
         "TEAM_MAX_ASSIGNMENTS_PER_ORDER": None,
+        "INPUT_FILE_MAX_PROJECT_COUNT": None,
     }
     assert "owner" not in json.dumps(listed)
     changed = operator_config.set_value(path, "APP_PORT", "18765")
@@ -79,6 +80,38 @@ def test_assignment_capacity_rejects_invalid_values(tmp_path: Path, value: str) 
     before = path.read_bytes()
     with pytest.raises(ValueError, match="TEAM_MAX_ASSIGNMENTS_PER_ORDER"):
         operator_config.set_value(path, "TEAM_MAX_ASSIGNMENTS_PER_ORDER", value)
+    assert path.read_bytes() == before
+
+
+def test_input_file_project_capacity_is_an_explicit_installed_setting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = private_env(tmp_path)
+    name = "INPUT_FILE_MAX_PROJECT_COUNT"
+    monkeypatch.setenv(name, "100")
+    assert operator_config.describe(path, "get", name)["value"] is None
+    explained = operator_config.describe(path, "explain", name)
+    assert explained["valid_range"] == [1, 100]
+    assert "staged" in str(explained["description"])
+    assert explained["restart_required_after_set"] is True
+
+    result = operator_config.set_value(path, name, "50")
+    assert result == {"setting": name, "value": "50", "restart_required": True}
+    assert operator_config.describe(path, "get", name)["value"] == "50"
+    assert "DB_PASSWORD=owner" in path.read_text(encoding="utf-8")
+    assert path.stat().st_mode & 0o777 == 0o600
+
+    path.write_text(path.read_text(encoding="utf-8") + f"{name}=40\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate"):
+        operator_config.values(path)
+
+
+@pytest.mark.parametrize("value", ["0", "101", "-1", "bad", "50 # capacity"])
+def test_input_file_project_capacity_rejects_invalid_values(tmp_path: Path, value: str) -> None:
+    path = private_env(tmp_path)
+    before = path.read_bytes()
+    with pytest.raises(ValueError, match="INPUT_FILE_MAX_PROJECT_COUNT"):
+        operator_config.set_value(path, "INPUT_FILE_MAX_PROJECT_COUNT", value)
     assert path.read_bytes() == before
 
 

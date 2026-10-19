@@ -26,6 +26,7 @@ SETTINGS = {
     "TEAM_MAX_ASSIGNMENTS_PER_ORDER": Setting(
         "Maximum unfinished team assignments per root work order", 1, 50
     ),
+    "INPUT_FILE_MAX_PROJECT_COUNT": Setting("Maximum project input files, including staged files", 1, 100),
 }
 LINE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=")
 
