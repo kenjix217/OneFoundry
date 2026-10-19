@@ -20,7 +20,7 @@ import { TaskCapabilityReadiness } from './TaskCapabilityReadiness';
 import { ChiefSidebar } from './ChiefSidebar';
 import { ConversationAgentSelect } from './ConversationAgentSelect';
 import { TaskMessageActions } from './TaskMessageActions';
-import { useConversationFollow } from './useConversationFollow';
+import { useConversationFollowControl } from './useConversationFollow';
 import type { View } from './workspaceNavigation';
 
 type Props = { project: Project; profiles: Profile[]; initialOrderId: string | null;
@@ -48,7 +48,7 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
   const [inputFiles, setInputFiles] = useState<PendingInputFile[]>([]);
   const pending = useRef<ChiefMessageRequest | null>(null);
   const restored = useRef<PendingIdentity | null>(null);
-  const transcript = useConversationFollow(state.selectedId);
+  const { transcript, pauseForReading } = useConversationFollowControl(state.selectedId);
   const composer = useRef<HTMLTextAreaElement>(null);
   const rootRecovery = useRef<HTMLDivElement>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -191,12 +191,12 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
         const text = operator ? item.body : publicMessage(item.body);
         return <article className={`chief-message ${operator ? 'from-operator' : ''}`} key={`${state.selectedId}:${item.id}`}>
           <small>{operator ? 'You' : item.source_session_id ? profiles.find((profile) => `profile:${profile.id}` === item.actor_id)?.name ?? 'Agent' : item.kind === 'system' ? 'Saved update' : order?.canonical_chief ? 'Chief of Staff' : order?.profile_name ?? 'Agent'}</small>
-          {operator ? <div className="chief-message-body">{item.body}</div> : <ChiefArtifactMessageText body={item.body} projectId={project.id} files={state.files} />}
+          {operator ? <div className="chief-message-body">{item.body}</div> : <ChiefArtifactMessageText body={item.body} projectId={project.id} files={state.files} onOpenReport={pauseForReading} />}
           <TaskMessageActions source={operator ? 'your' : 'agent'} text={text} onCopy={(value) => { void copyMessage(value); }}
             onEdit={item.kind !== 'system' && !order?.archived && !busy && !pending.current && !restored.current ? () => editMessage(item.id, text) : undefined} />
         </article>;
       })}
-      <ChiefDeliverables key={state.selectedId} projectId={project.id} files={state.files} />
+      <ChiefDeliverables key={state.selectedId} projectId={project.id} files={state.files} onOpenReport={pauseForReading} />
       <ChiefApprovals projectId={project.id} approvals={state.approvals} onSaved={state.refresh} />
       {state.reviewOrder?.status === 'needs_review' && order?.completion_policy === 'operator_review' && <WorkOrderReviewActions projectId={project.id} order={state.reviewOrder} onSaved={state.refresh} />}
       {state.view && <details className="chief-history" onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>

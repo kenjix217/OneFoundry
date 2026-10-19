@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChiefArtifactMessageText } from '../src/ChiefArtifactMessageText';
 
@@ -23,13 +23,13 @@ it('opens the exact same-root saved artifact by SHA or ID through the verified p
     body={`Read [final index](artifact:${sha}) or [saved copy](artifact:${artifactId}).`} />);
   expect(screen.getByRole('button', { name: 'Open saved file saved copy' })).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Open saved file final index' }));
-  expect(screen.getByRole('button', { name: 'Close file preview' })).toHaveFocus();
-  expect(await screen.findByText('Verified final index text')).toBeInTheDocument();
+  await waitFor(() => expect(screen.getByRole('heading', { name: 'Saved report' })).toHaveFocus());
+  expect(within(screen.getByLabelText('Saved file preview')).getByText('Verified final index text', { selector: 'p' })).toBeInTheDocument();
   expect(fetch.mock.calls.some(([path]) => path.endsWith(`/projects/project-1/runs/run-1/workspace-artifacts/${artifactId}`))).toBe(true);
   await user.click(screen.getByRole('button', { name: 'Close file preview' }));
   expect(screen.getByRole('button', { name: 'Open saved file final index' })).toHaveFocus();
   await user.click(screen.getByRole('button', { name: 'Open saved file saved copy' }));
-  expect(await screen.findByText('Verified final index text')).toBeInTheDocument();
+  await waitFor(() => expect(screen.getByRole('heading', { name: 'Saved report' })).toHaveFocus());
 });
 
 it('leaves unknown, ambiguous, malformed, and external references inert as literal text', () => {
@@ -66,7 +66,7 @@ it('preserves public QA feedback and clears an open preview when its conversatio
   expect(screen.getByText(/Changes requested/)).toHaveTextContent('Fix the sources');
   expect(screen.queryByText('private')).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Open saved file final index' }));
-  expect(await within(screen.getByLabelText('Saved file preview')).findByText('Verified final index text')).toBeInTheDocument();
+  expect(await within(screen.getByLabelText('Saved file preview')).findByText('Verified final index text', { selector: 'p' })).toBeInTheDocument();
   rerender(<ChiefArtifactMessageText key={2} projectId="project-1" files={[file]} body={body} />);
   expect(screen.queryByLabelText('Saved file preview')).not.toBeInTheDocument();
 });

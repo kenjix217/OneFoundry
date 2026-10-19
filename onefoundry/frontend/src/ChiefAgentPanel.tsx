@@ -81,7 +81,7 @@ export function ChiefAgentPanel({ projectId, orderId, sessionId, main, profiles,
           {!!view?.history_omitted?.messages && <p>Earlier messages remain available in Details.</p>}
           {view && <details className="chief-agent-activity" onToggle={(event) => setActivityOpen(event.currentTarget.open)}><summary>Recorded actions and earlier attempts</summary>
             {activityOpen && <TaskSessionActivity view={view} profiles={profiles} />}</details>}</>}
-        {tab === 'files' && <>{[...new Set(files.filter((item) => item.profile_id === child?.profile_id && view?.attempts.some((attempt) => attempt.id === item.run_id)).map((item) => item.run_id))].map((runId) => <WorkspaceArtifactPanel key={runId} projectId={projectId} runId={runId} />)}
+        {tab === 'files' && <>{[...new Set(files.filter((item) => item.profile_id === child?.profile_id && view?.attempts.some((attempt) => attempt.id === item.run_id)).map((item) => item.run_id))].map((runId) => <WorkspaceArtifactPanel key={runId} projectId={projectId} runId={runId} presentation="chief" />)}
           {!view && !error && <p role="status">Reading saved files…</p>}
           {view && !files.some((item) => item.profile_id === child?.profile_id && view.attempts.some((attempt) => attempt.id === item.run_id)) && <p>No saved files yet.</p>}</>}
       </section>

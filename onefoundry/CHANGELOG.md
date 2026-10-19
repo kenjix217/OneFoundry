@@ -1,5 +1,10 @@
 # OneFoundry changelog
 
+## 0.21.5
+
+- Read verified saved reports with headings, lists and tables, and keep exact text available to copy or save. Opening a report starts at its heading and holds chat following while the operator reads.
+- Resolve the repository QA gate image to its inspected immutable ID before execution.
+
 ## 0.21.4
 
 - Keep the conversation readable in short browser panels by compacting Current work, its actions and the empty composer while preserving status, recovery controls and entered text.

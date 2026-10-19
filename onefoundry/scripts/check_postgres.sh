@@ -39,7 +39,12 @@ if [ -z "$repository_qa_image" ]; then
   docker build --target repository-qa -t "$repository_qa_image" .
   qa_owned_image=$repository_qa_image
 fi
-ONEFOUNDRY_EGRESS_TEST_IMAGE="${project}-test:latest" ONEFOUNDRY_REPOSITORY_QA_TEST_IMAGE="$repository_qa_image" "$uv_bin" run --locked pytest -q tests/test_repository_code.py tests/test_repository_failure_evidence.py -m integration
+repository_qa_image_id=$(docker image inspect --format '{{.Id}}' "$repository_qa_image")
+if ! printf '%s\n' "$repository_qa_image_id" | LC_ALL=C grep -Eq '^sha256:[0-9a-f]{64}$'; then
+  printf '%s\n' 'Repository QA image inspection did not return an immutable image ID.' >&2
+  exit 1
+fi
+ONEFOUNDRY_EGRESS_TEST_IMAGE="${project}-test:latest" ONEFOUNDRY_REPOSITORY_QA_TEST_IMAGE="$repository_qa_image_id" "$uv_bin" run --locked pytest -q tests/test_repository_code.py tests/test_repository_failure_evidence.py -m integration
 
 ONEFOUNDRY_EGRESS_TEST_IMAGE="${project}-test:latest" "$uv_bin" run --locked pytest -q tests/test_repository_provider.py tests/test_repository_codex_observation.py -m integration
 ONEFOUNDRY_EGRESS_TEST_IMAGE="${project}-test:latest" "$uv_bin" run --locked pytest -q tests/test_repository_transport.py -m integration

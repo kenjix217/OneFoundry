@@ -62,6 +62,8 @@ Open a project and give Chief an objective in the conversation. The first messag
 
 **Current work** shows working and queued turns, missing results, saved files, and the next available action. A recovery action opens the affected Chief or specialist session. Choose **Reconcile saved actions** to check exact persisted receipts; a confirmed saved terminal report clears its execution hold while retaining the historical uncertain provider outcome. If the outcome still cannot be proved, review the saved actions before recording a reasoned abandonment. Neither action replays work or approves an outbound effect. Saved-file cards use the producing task title and open the exact artifact. Completed work that requires operator acceptance links to its existing review controls. The read-only `GET /api/projects/{project_id}/chief-workspace/{order_id}/progress` endpoint projects these counts, blockers, and actions from the existing owners.
 
+Saved reports open as readable text after verified readback. **Copy report** and **Save a copy** preserve the exact saved text; expand **Exact saved text** to inspect it. Opening a report holds automatic chat following while you read. Scroll to the bottom to resume following.
+
 Use the copy and edit icons on operator or agent messages. Edit loads the text
 into the composer; Send saves a new message and keeps the original history.
 Chats follow new messages and progress while you are at the bottom; scrolling

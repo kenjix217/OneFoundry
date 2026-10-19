@@ -233,7 +233,7 @@ it('opens a Chief artifact reference from its exact saved root and clears the pr
   vi.stubGlobal('fetch', fetch);
   const user = userEvent.setup(); renderWorkspace(row.id);
   await user.click(await screen.findByRole('button', { name: 'Open saved file final index' }));
-  expect(await screen.findByText('Exact final index')).toBeInTheDocument();
+  expect(await screen.findByText('Exact final index', { selector: 'p' })).toBeInTheDocument();
   expect(fetch.mock.calls.some(([path]) => path.endsWith(`/runs/run-1/workspace-artifacts/${artifactId}`))).toBe(true);
   await user.click(screen.getByTitle('Next task'));
   await screen.findByRole('heading', { name: 'Next task' });
@@ -439,7 +439,7 @@ it('lists distinct saved deliverables from the same run', async () => {
   expect(within(deliveries).getAllByRole('button')).toHaveLength(2);
   expect(within(deliveries).getByRole('button', { name: /Market evidence summary/ })).toHaveTextContent('Researcher · markdown');
   await userEvent.setup().click(within(deliveries).getByRole('button', { name: /file 2/ }));
-  expect(await screen.findByText('Second saved deliverable')).toBeInTheDocument();
+  expect(await screen.findByText('Second saved deliverable', { selector: 'p' })).toBeInTheDocument();
   expect(fetch.mock.calls.some(([path]) => path.endsWith('/workspace-artifacts/artifact-2'))).toBe(true);
 });
 
@@ -462,19 +462,19 @@ it('shows six readable recent files, all exact artifacts on request, and keeps a
   vi.stubGlobal('fetch', fetch);
   renderWorkspace(row.id);
   const deliveries = await screen.findByRole('region', { name: 'Saved deliverables' });
-  expect(within(deliveries).getAllByRole('button', { name: /Open saved file/ })).toHaveLength(6);
+  expect(deliveries.querySelectorAll('.chief-deliverable-card>button')).toHaveLength(6);
   expect(within(deliveries).getAllByText(/REFRESH operating-cost handoff/)[0]).not.toHaveTextContent(trace);
   expect(within(deliveries).queryByRole('button', { name: new RegExp(trace) })).not.toBeInTheDocument();
   await userEvent.setup().click(within(deliveries).getAllByText('Full task title')[0]);
   expect(within(deliveries).getAllByText(longTitle)[0]).toBeVisible();
   expect(within(deliveries).getByRole('button', { name: 'Show all 8 files' })).toHaveAttribute('aria-expanded', 'false');
   await userEvent.setup().click(within(deliveries).getByRole('button', { name: 'Show all 8 files' }));
-  expect(within(deliveries).getAllByRole('button', { name: /Open saved file/ })).toHaveLength(8);
+  expect(deliveries.querySelectorAll('.chief-deliverable-card>button')).toHaveLength(8);
   await userEvent.setup().click(within(deliveries).getByRole('button', { name: /Open saved file 8/ }));
-  expect(await screen.findByText('Exact eighth deliverable')).toBeInTheDocument();
+  expect(await screen.findByText('Exact eighth deliverable', { selector: 'p' })).toBeInTheDocument();
   await userEvent.setup().click(within(deliveries).getByRole('button', { name: 'Show recent 6 files' }));
-  expect(within(deliveries).getAllByRole('button', { name: /Open saved file/ })).toHaveLength(6);
-  expect(screen.getByText('Exact eighth deliverable')).toBeInTheDocument();
+  expect(deliveries.querySelectorAll('.chief-deliverable-card>button')).toHaveLength(6);
+  expect(screen.getByText('Exact eighth deliverable', { selector: 'p' })).toBeInTheDocument();
   expect(fetch.mock.calls.some(([path]) => path.endsWith('/workspace-artifacts/artifact-8'))).toBe(true);
 });
 

@@ -69,6 +69,96 @@ it('shows verified text literally and distinguishes pending and unknown writes',
   expect(fetcher).toHaveBeenCalledWith(`${artifactsPath}/${artifactId}`, expect.anything());
 });
 
+it('opens a selected Chief report from verified readback, formats it, and keeps its exact source copyable', async () => {
+  const fetcher = vi.fn(async (path: string) => {
+    if (path === artifactsPath) return json([artifact]);
+    if (path === `${artifactsPath}/${artifactId}`) return json({ ...artifact, content });
+    throw new Error(`Unexpected path ${path}`);
+  });
+  vi.stubGlobal('fetch', fetcher);
+  const user = userEvent.setup();
+  const writeText = vi.fn(async () => undefined);
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+  render(<WorkspaceArtifactPanel projectId={projectId} runId={runId} initialArtifactId={artifactId}
+    presentation="chief" displayName="DistrictAI report" />);
+  const title = await screen.findByRole('heading', { name: 'DistrictAI report' });
+  await waitFor(() => expect(title).toHaveFocus());
+  expect(screen.getByRole('heading', { name: 'Saved note' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Preview verified/ })).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Exact saved report source').textContent).toBe(content);
+  expect(screen.getByText('Other saved files and details').closest('details')).not.toHaveAttribute('open');
+  await user.click(screen.getByRole('button', { name: 'Copy report' }));
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith(content));
+  expect(fetcher).toHaveBeenCalledWith(`${artifactsPath}/${artifactId}`, expect.anything());
+});
+
+it('shows and focuses verified readback failure in Chief mode without showing report actions', async () => {
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => path === artifactsPath
+    ? json([artifact]) : json({ detail: 'stored bytes unavailable' }, 409)));
+  render(<WorkspaceArtifactPanel projectId={projectId} runId={runId} initialArtifactId={artifactId}
+    presentation="chief" />);
+  const error = await screen.findByRole('alert');
+  expect(error).toHaveTextContent('stored bytes unavailable');
+  expect(error).toHaveFocus();
+  expect(screen.queryByRole('button', { name: 'Copy report' })).not.toBeInTheDocument();
+});
+
+it('keeps an absent or pending selected file unavailable in Chief mode', async () => {
+  const pending: WorkspaceArtifact = { ...artifact, status: 'pending', finished_at: null };
+  const fetcher = vi.fn(async () => json([pending]));
+  vi.stubGlobal('fetch', fetcher);
+  const result = render(<WorkspaceArtifactPanel projectId={projectId} runId={runId}
+    initialArtifactId={artifactId} presentation="chief" />);
+  expect(await screen.findByText('This file is still being saved.')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Saved report' })).toHaveFocus();
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  result.unmount();
+
+  vi.stubGlobal('fetch', vi.fn(async () => json([artifact])));
+  render(<WorkspaceArtifactPanel projectId={projectId} runId={runId}
+    initialArtifactId="missing-in-run" presentation="chief" />);
+  const missing = await screen.findByRole('alert');
+  expect(missing).toHaveTextContent('not found in the selected run');
+  expect(missing).toHaveFocus();
+  expect(screen.queryByRole('button', { name: 'Copy report' })).not.toBeInTheDocument();
+});
+
+it('saves verified report text as a local copy and shows a browser failure', async () => {
+  vi.stubGlobal('fetch', vi.fn(async (path: string) => path === artifactsPath
+    ? json([artifact]) : json({ ...artifact, content })));
+  const originalCreate = URL.createObjectURL;
+  const originalRevoke = URL.revokeObjectURL;
+  const create = vi.fn((blob: Blob) => { void blob; return 'blob:verified-report'; });
+  URL.createObjectURL = create;
+  URL.revokeObjectURL = vi.fn();
+  const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+    expect(this.download).toBe('saved-report.md');
+    expect(this.href).toBe('blob:verified-report');
+  });
+  try {
+    render(<WorkspaceArtifactPanel projectId={projectId} runId={runId}
+      initialArtifactId={artifactId} presentation="chief" />);
+    await screen.findByRole('button', { name: 'Save a copy' });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Save a copy' }));
+    expect(click).toHaveBeenCalledTimes(1);
+    const savedText = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(create.mock.calls[0]![0]);
+    });
+    expect(savedText).toBe(content);
+    await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:verified-report'));
+    create.mockImplementation(() => { throw new Error('unsupported'); });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Save a copy' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not save a copy');
+  } finally {
+    URL.createObjectURL = originalCreate;
+    URL.revokeObjectURL = originalRevoke;
+    click.mockRestore();
+  }
+});
+
 it('keeps readback errors visible and does not show an empty panel', async () => {
   vi.stubGlobal('fetch', vi.fn(async (path: string) => {
     if (path === artifactsPath) return json([artifact]);
@@ -109,4 +199,30 @@ it('places persisted artifacts in the selected run timeline', async () => {
   const section = await screen.findByRole('region', { name: 'Saved artifacts' });
   expect(await within(section).findByText('1 artifact')).toBeInTheDocument();
   expect(within(section).getByText(`Saved file · ${artifact.byte_size} bytes · text/markdown`)).toBeInTheDocument();
+});
+
+it('does not show content from an aborted earlier report selection and reports clipboard denial', async () => {
+  let finishFirst: ((value: Response) => void) | undefined;
+  const secondId = 'b5555555-5555-4555-8555-555555555555';
+  const second = { ...artifact, id: secondId };
+  const fetcher = vi.fn(async (path: string) => {
+    if (path === artifactsPath) return json([artifact, second]);
+    if (path.endsWith(secondId)) return json({ ...second, content });
+    return new Promise<Response>((resolve) => { finishFirst = resolve; });
+  });
+  vi.stubGlobal('fetch', fetcher);
+  const result = render(<WorkspaceArtifactPanel projectId={projectId} runId={runId}
+    initialArtifactId={artifactId} presentation="chief" />);
+  await waitFor(() => expect(finishFirst).toBeDefined());
+  result.rerender(<WorkspaceArtifactPanel projectId={projectId} runId={runId}
+    initialArtifactId={secondId} presentation="chief" />);
+  await screen.findByRole('button', { name: 'Copy report' });
+  finishFirst?.(json({ ...artifact, content: 'STALE report bytes' }));
+  await waitFor(() => expect(screen.queryByText('STALE report bytes')).not.toBeInTheDocument());
+  const user = userEvent.setup();
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+    writeText: vi.fn(async () => { throw new Error('denied'); }),
+  } });
+  await user.click(screen.getByRole('button', { name: 'Copy report' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Could not copy this report');
 });
