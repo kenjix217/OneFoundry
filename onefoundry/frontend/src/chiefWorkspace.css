@@ -83,6 +83,8 @@
 .chief-message>small{display:block;font-weight:600;font-size:11px;color:var(--theme-secondary);margin-bottom:9px}
 .chief-message.from-operator{margin-left:auto;max-width:90%;background:var(--theme-accent-soft);border-radius:12px;padding:14px 17px}
 .chief-message-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75;font-size:13px;color:var(--theme-text)}
+.chief-workspace .chief-artifact-link{display:inline;padding:0;color:var(--theme-accent);text-decoration:underline;font-size:inherit;line-height:inherit;white-space:normal;overflow-wrap:anywhere;text-align:left}
+.chief-linked-file-preview{margin-top:10px;max-width:100%;overflow-wrap:anywhere;scroll-margin-block:16px}
 .chief-message .task-message-actions{margin-top:8px}
 .chief-message .task-message-icon{padding:4px;color:var(--theme-muted)}
 .chief-message .task-message-icon:hover{color:var(--theme-text);background:var(--theme-raised)}

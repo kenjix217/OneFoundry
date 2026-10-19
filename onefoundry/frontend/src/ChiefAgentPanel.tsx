@@ -6,9 +6,10 @@ import { WorkspaceArtifactPanel } from './WorkspaceArtifactPanel';
 import { ChiefAgentRecovery } from './ChiefAgentRecovery';
 import { TaskSessionActivity } from './TaskSessionActivity';
 import { messagePresentation } from './taskSessionActivity';
+import { ChiefArtifactMessageText } from './ChiefArtifactMessageText';
 
 export type ChiefFile = { id: string; run_id: string; profile_id: string; profile_name: string; kind: string;
-  work_order_title?: string | null; status?: 'ready' | 'pending' | 'unknown' };
+  work_order_title?: string | null; sha256?: string; status?: 'ready' | 'pending' | 'unknown' };
 type Props = { projectId: string; orderId: string; sessionId: string; main: TeamSessionView;
   profiles: Profile[]; files: ChiefFile[]; initialTab?: 'context' | 'conversation'; onClose: () => void };
 export function ChiefAgentPanel({ projectId, orderId, sessionId, main, profiles, files, initialTab = 'context', onClose }: Props) {
@@ -25,6 +26,9 @@ export function ChiefAgentPanel({ projectId, orderId, sessionId, main, profiles,
     const presentation = messagePresentation(item.body);
     return item.kind === 'agent' && presentation.kind === 'text' && presentation.record?.verdict === 'needs_rework';
   }) : undefined;
+  const conversationMessages = view?.messages.filter((item) => item.id !== reviewFeedback?.id && item.kind !== 'system' &&
+    (item.kind.includes('operator') || isPublicAgentMessage(item.body))) ?? [];
+  const latestAttempt = view?.attempts.at(-1);
   async function refresh() {
     const saved = await getTeamSession(projectId, orderId, sessionId);
     setView(saved);
@@ -65,9 +69,15 @@ export function ChiefAgentPanel({ projectId, orderId, sessionId, main, profiles,
           {view?.messages.filter((item) => item.kind === 'system').map((item) => <section key={item.id}><h3>Supplied context</h3><ChiefConversationText body={item.body} /></section>)}
           <p>Chief owns this assignment and its next step.</p></>}
         {tab === 'conversation' && <>{!view && !error && <p role="status">Reading saved conversation…</p>}
-          {reviewFeedback && <section aria-label="Review feedback"><h3>Latest changes requested</h3><ChiefConversationText body={reviewFeedback.body} /></section>}
-          {view?.messages.filter((item) => item.id !== reviewFeedback?.id && item.kind !== 'system' && (item.kind.includes('operator') || isPublicAgentMessage(item.body)))
-            .map((item) => <article className="chief-agent-message" key={item.id}><small>{item.kind.includes('operator') ? 'Operator' : profile?.name ?? 'Agent'}</small><ChiefConversationText body={item.body} /></article>)}
+          {reviewFeedback && <section aria-label="Review feedback"><h3>Latest changes requested</h3><ChiefArtifactMessageText body={reviewFeedback.body} projectId={projectId} files={files} /></section>}
+          {view && !reviewFeedback && conversationMessages.length === 0 && !view.history_omitted?.messages &&
+            <p role="status">{latestAttempt?.status === 'failed'
+              ? latestAttempt.reason === 'memory_embedding_timeout'
+                ? 'Memory lookup timed out before the agent started. Chief can review the recorded attempt.'
+                : 'The agent stopped before saving a reply. Chief can review the recorded attempt.'
+              : 'No conversation reply has been saved yet. Review recorded actions and earlier attempts for the current state.'}</p>}
+          {conversationMessages.map((item) => <article className="chief-agent-message" key={item.id}><small>{item.kind.includes('operator') ? 'Operator' : profile?.name ?? 'Agent'}</small>{item.kind.includes('operator')
+            ? <ChiefConversationText body={item.body} /> : <ChiefArtifactMessageText body={item.body} projectId={projectId} files={files} />}</article>)}
           {!!view?.history_omitted?.messages && <p>Earlier messages remain available in Details.</p>}
           {view && <details className="chief-agent-activity" onToggle={(event) => setActivityOpen(event.currentTarget.open)}><summary>Recorded actions and earlier attempts</summary>
             {activityOpen && <TaskSessionActivity view={view} profiles={profiles} />}</details>}</>}

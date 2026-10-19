@@ -209,6 +209,38 @@ it('presents saved structured agent findings as readable public text', () => {
   expect(publicMessage(JSON.stringify({ summary: 'Verified product brief', artifact: { artifact_id: 'internal' } }))).toBe('Verified product brief');
 });
 
+it('opens a Chief artifact reference from its exact saved root and clears the preview on conversation change', async () => {
+  const sha = 'd'.repeat(64);
+  const artifactId = '17cf947d-eabd-4f2a-9382-24eb760dc65d';
+  const nextId = 'a1f083c3-6db5-4ce7-b6b5-b1c9b6f75f48';
+  const final = { ...view.messages[0], id: 'final-message', sequence: 2, kind: 'agent', actor_id: 'profile:chief-1',
+    body: `Final notes: [final index](artifact:${sha})` };
+  const artifact = { id: artifactId, run_id: 'run-1', profile_id: 'research-1', profile_name: 'Researcher',
+    kind: 'markdown', status: 'ready', sha256: sha };
+  const saved = { id: artifactId, kind: 'markdown', mime_type: 'text/markdown', sha256: sha,
+    byte_size: 22, status: 'ready', created_at: '2026-10-18T12:00:00Z', finished_at: '2026-10-18T12:01:00Z' };
+  const fetch = vi.fn(async (path: string) => {
+    if (path.includes('/resolve/')) return json({ order_id: row.id, agent_session_id: null });
+    if (path.endsWith('/chief-workspace')) return json([row, { ...row, id: 'order-2', title: 'Next task' }]);
+    if (path.endsWith('/work-orders/order-1/team-session')) return json({ ...view, messages: [...view.messages, final] });
+    if (path.endsWith('/work-orders/order-2/team-session')) return json({ ...view, messages: [...view.messages, final] });
+    if (path.endsWith('/work-orders/order-1/team-session/artifacts')) return json([artifact]);
+    if (path.endsWith('/work-orders/order-2/team-session/artifacts')) return json([{ ...artifact, id: nextId, run_id: 'run-2' }]);
+    if (path.endsWith('/runs/run-1/workspace-artifacts')) return json([saved]);
+    if (path.endsWith(`/runs/run-1/workspace-artifacts/${artifactId}`)) return json({ ...saved, content: 'Exact final index' });
+    return json([]);
+  });
+  vi.stubGlobal('fetch', fetch);
+  const user = userEvent.setup(); renderWorkspace(row.id);
+  await user.click(await screen.findByRole('button', { name: 'Open saved file final index' }));
+  expect(await screen.findByText('Exact final index')).toBeInTheDocument();
+  expect(fetch.mock.calls.some(([path]) => path.endsWith(`/runs/run-1/workspace-artifacts/${artifactId}`))).toBe(true);
+  await user.click(screen.getByTitle('Next task'));
+  await screen.findByRole('heading', { name: 'Next task' });
+  await screen.findByRole('button', { name: 'Open saved file final index' });
+  expect(screen.queryByRole('region', { name: 'Saved file preview' })).not.toBeInTheDocument();
+});
+
 it('shows the saved team blocker and opens its exact affected child', async () => {
   const child = { id: 'child-unknown', profile_id: 'research-1', work_order_id: 'child-order', status: 'closed', parent_session_id: 'session-1' };
   const progress = { counts: { active_attempts: 0, queued_attempts: 0, unfinished_assignments: 0,

@@ -6,9 +6,10 @@ import { useChiefWorkspace } from './useChiefWorkspace';
 import { ChiefAgentPanel } from './ChiefAgentPanel';
 import { ChiefDelegatedAgents } from './ChiefDelegatedAgents';
 import { ChiefAgentRecovery } from './ChiefAgentRecovery';
-import { ChiefConversationText, isPublicAgentMessage, publicMessage } from './ChiefConversationText';
+import { isPublicAgentMessage, publicMessage } from './ChiefConversationText';
 import { ChiefApprovals } from './ChiefApprovals';
 import { ChiefDeliverables } from './ChiefDeliverables';
+import { ChiefArtifactMessageText } from './ChiefArtifactMessageText';
 import { ChiefProgressCard } from './ChiefProgressCard';
 import { WorkOrderReviewActions } from './WorkOrderReviewActions';
 import { InputFilePicker } from './InputFilePicker';
@@ -188,9 +189,9 @@ export function ChiefWorkspace({ project, profiles, initialOrderId, onSelect, on
         }
         const operator = item.kind.includes('operator');
         const text = operator ? item.body : publicMessage(item.body);
-        return <article className={`chief-message ${operator ? 'from-operator' : ''}`} key={item.id}>
+        return <article className={`chief-message ${operator ? 'from-operator' : ''}`} key={`${state.selectedId}:${item.id}`}>
           <small>{operator ? 'You' : item.source_session_id ? profiles.find((profile) => `profile:${profile.id}` === item.actor_id)?.name ?? 'Agent' : item.kind === 'system' ? 'Saved update' : order?.canonical_chief ? 'Chief of Staff' : order?.profile_name ?? 'Agent'}</small>
-          {operator ? <div className="chief-message-body">{item.body}</div> : <ChiefConversationText body={item.body} />}
+          {operator ? <div className="chief-message-body">{item.body}</div> : <ChiefArtifactMessageText body={item.body} projectId={project.id} files={state.files} />}
           <TaskMessageActions source={operator ? 'your' : 'agent'} text={text} onCopy={(value) => { void copyMessage(value); }}
             onEdit={item.kind !== 'system' && !order?.archived && !busy && !pending.current && !restored.current ? () => editMessage(item.id, text) : undefined} />
         </article>;
